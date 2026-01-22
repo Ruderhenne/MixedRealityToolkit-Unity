@@ -301,6 +301,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PressableButton_32x32mm_IconAndText
       objectReference: {fileID: 0}
+    - target: {fileID: 5092507606858315802, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -478,19 +482,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.003
+      value: 0.06
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.045
+      value: -0.043
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.99984777
+      value: 0.9999986
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.01745245
+      value: 0.0016580356
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalRotation.y
@@ -502,7 +506,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 2
+      value: 0.19
       objectReference: {fileID: 0}
     - target: {fileID: 2351505567455720332, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       propertyPath: m_LocalPosition.x
