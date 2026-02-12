@@ -155,9 +155,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/Experimental/VirtualizedScrollRectList.unity
     guid: 037c8f21459dffd409cda32f75faa783
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MyScenes/DashboardScene.unity
     guid: 3eb6f9d9d826a394796470cc5bbcb49e
+  - enabled: 1
+    path: Assets/Scenes/MyScenes/MultiUserScene.unity
+    guid: 1f3f7cbedaf81364a9023203f7a7286d
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 87467803e919cef4394e7f39c6521b51, type: 2}
     com.unity.input.settings: {fileID: 11400000, guid: e61946fb8f8ff5e418d6ebb56cca2034, type: 2}
