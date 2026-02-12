@@ -39,6 +39,11 @@ MonoBehaviour:
   - DestroySpaceship
   - Fire
   - RespawnSpaceship
+  - UpdateCounter
+  - RPC_UpdateCounter
+  - RPC_UpdateLeftSlider
+  - RPC_UpdateRightSlider
+  - RPC_UpdateSlider
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
