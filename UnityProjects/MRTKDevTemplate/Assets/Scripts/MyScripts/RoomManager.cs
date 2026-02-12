@@ -25,7 +25,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             Transform cam = Camera.main.transform;
-            Vector3 pos = cam.position + cam.forward * 0.5f;
+            Vector3 pos = cam.position + cam.forward * 0.5f;    //Entfernung des Dashboards vor der Kamera
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
             GameObject dash = PhotonNetwork.Instantiate("DashboardPanel", pos, rot);

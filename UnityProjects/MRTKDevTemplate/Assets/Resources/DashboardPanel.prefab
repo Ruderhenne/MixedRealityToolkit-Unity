@@ -46,10 +46,10 @@ GameObject:
   - component: {fileID: 1219793980891235516}
   - component: {fileID: 1687253071022471770}
   - component: {fileID: 8416026627527858913}
-  - component: {fileID: 8589693352927884750}
   - component: {fileID: -4317921437162948065}
   - component: {fileID: -354711522810159732}
   - component: {fileID: 1033650479976195307}
+  - component: {fileID: 1216217915008310198}
   m_Layer: 0
   m_Name: DashboardPanel
   m_TagString: Untagged
@@ -147,20 +147,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &8589693352927884750
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 469656155434171243}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18b4f371283b59141be255dec3fb21cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  counterText: {fileID: 8413450128034556668}
-  sliderText: {fileID: 6718713356564422593}
 --- !u!114 &-4317921437162948065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -214,6 +200,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   counterText: {fileID: 8413450128034556668}
   valueSlider: {fileID: 7553054865990239933}
+  sliderText: {fileID: 6718713356564422593}
+--- !u!114 &1216217915008310198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 469656155434171243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18b4f371283b59141be255dec3fb21cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  counterText: {fileID: 8413450128034556668}
   sliderText: {fileID: 6718713356564422593}
 --- !u!1 &946045137141108793
 GameObject:
@@ -961,6 +961,10 @@ PrefabInstance:
       value: NetworkDashboardManager, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 9075688916865880869, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
+      propertyPath: onValueUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_FloatArgument
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9075688916865880869, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
       propertyPath: onValueUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
@@ -1319,7 +1323,7 @@ PrefabInstance:
     - target: {fileID: 8008645128334983964, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 8589693352927884750}
+      objectReference: {fileID: 1033650479976195307}
     - target: {fileID: 8008645128334983964, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -1330,7 +1334,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8008645128334983964, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: DashboardManager, Assembly-CSharp
+      value: NetworkDashboardManager, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 8008645128334983964, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName

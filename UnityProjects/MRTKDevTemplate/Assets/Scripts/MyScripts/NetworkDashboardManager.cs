@@ -1,9 +1,10 @@
-using UnityEngine;
-using Photon.Pun;
-using TMPro;
-using UnityEngine.UI;
 using MixedReality.Toolkit.UX;    
+using Photon.Pun;
 using System.IO;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
 
 // Fix: Ersetze Microsoft.MixedReality.Toolkit.UI.Slider durch UnityEngine.UI.Slider
 public class NetworkDashboardManager : MonoBehaviourPun
@@ -14,7 +15,7 @@ public class NetworkDashboardManager : MonoBehaviourPun
     [SerializeField] TMP_Text sliderText;
 
     [Header("Persistenz")]
-    private string savePath = "";
+    private string savePath;
 
     // Zustand
     private int counterValue = 0;
@@ -54,10 +55,29 @@ public class NetworkDashboardManager : MonoBehaviourPun
     {
         //if (!photonView.IsMine) return;
         sliderValue = value;
-        sliderText.text = value.ToString("F1");
+
+        // Null-Check + Slider setzen
+        if (sliderText != null) sliderText.text = value.ToString("F1");
+
+        // sync für alle Clients
         photonView.RPC("RPC_UpdateSlider", RpcTarget.All, value);
+
+        // Speichern nur durch MasterClient
         if (PhotonNetwork.IsMasterClient) SaveDashboardState();
     }
+
+    // Schliessen-Knopf (EmergencyStop)
+    public void OnEmergencyStopPressed()
+    {
+        Debug.Log("Emergency stop pressed. Exiting application.");
+
+#if UNITY_EDITOR
+        EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
 
     // RPCs (Netzwerk-Sync)
     [PunRPC]
@@ -71,10 +91,15 @@ public class NetworkDashboardManager : MonoBehaviourPun
     void RPC_UpdateSlider(float value)
     {
         sliderValue = value;
+
+        // Null-Check + Slider setzen
         if (valueSlider != null)
         {
             valueSlider.Value = value;
+            Debug.Log($"Slider RPC: {value} -> {valueSlider.Value}");
         }
+
+        // Text immer setzen
         if (sliderText != null)
         {
             sliderText.text = value.ToString("F1");
