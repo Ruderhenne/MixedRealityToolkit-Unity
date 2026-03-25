@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEngine;
-using TMPro; // F�r TextMeshPro
+using TMPro; // F�r TextMeshPro
 using UnityEngine.Events;
 using MixedReality.Toolkit.UX;
 
@@ -14,7 +14,7 @@ using UnityEditor;
 public class DashboardState
 {
     public int counterValue = 0;
-    public float sliderValue = 0f; // 0�100
+    public float sliderValue = 0f; // 0–100
 }
 
 public class DashboardManager : MonoBehaviour
@@ -34,11 +34,17 @@ public class DashboardManager : MonoBehaviour
     private DashboardState state = new DashboardState();
     private string saveFilePath;
 
+    // Verhindert unbeabsichtigtes Speichern während Initialisierung (z.B. Slider-Events beim Setzen)
+    private bool isInitializing = false;
+
     private void Awake()
     {
         saveFilePath = Path.Combine(Application.persistentDataPath, "dashboard_state.json");
+
+        isInitializing = true;
         LoadState();
         ApplyStateToUI();
+        isInitializing = false;
     }
 
 
@@ -71,6 +77,8 @@ public class DashboardManager : MonoBehaviour
 
     public void OnSliderValueChanged(float value)
     {
+        if (isInitializing) return; // Ignore changes fired during initialization
+
         Debug.Log($"Slider changed: {value}");
         state.sliderValue = value;
         UpdateSliderUI();
@@ -117,6 +125,7 @@ public class DashboardManager : MonoBehaviour
         var mrtkSlider = GetComponentInChildren<Slider>();
         if (mrtkSlider != null)
         {
+            // Setzen ohne Speichern dank isInitializing-Flag (Events können trotzdem feuern)
             mrtkSlider.Value = state.sliderValue;
         }
         else
@@ -124,7 +133,6 @@ public class DashboardManager : MonoBehaviour
             Debug.LogWarning("No MRTK Slider component found as child of DashboardPanel.");
         }
     }
-
 
 
 
@@ -150,6 +158,8 @@ public class DashboardManager : MonoBehaviour
 
     private void SaveState()
     {
+        if (isInitializing) return; // Prevent accidental saves during startup
+
         try
         {
             string json = JsonUtility.ToJson(state, true);
@@ -169,12 +179,39 @@ public class DashboardManager : MonoBehaviour
             if (File.Exists(saveFilePath))
             {
                 string json = File.ReadAllText(saveFilePath);
-                state = JsonUtility.FromJson<DashboardState>(json);
-                if (state == null)
+
+                // Unterstütze zwei Formate:
+                // - Legacy/Local DashboardManager: { counterValue, sliderValue }
+                // - Network-Format (ältere NetworkDashboardManager): { counter, slider }
+                if (json.Contains("\"counterValue\"") || json.Contains("\"sliderValue\""))
                 {
-                    state = new DashboardState();
+                    var local = JsonUtility.FromJson<DashboardState>(json);
+                    if (local != null)
+                        state = local;
+                    else
+                        state = new DashboardState();
                 }
-                Debug.Log($"Dashboard state loaded from {saveFilePath}");
+                else if (json.Contains("\"counter\"") || json.Contains("\"slider\""))
+                {
+                    var net = JsonUtility.FromJson<NetworkFormatState>(json);
+                    if (net != null)
+                    {
+                        state.counterValue = net.counter;
+                        state.sliderValue = net.slider;
+                    }
+                    else
+                    {
+                        state = new DashboardState();
+                    }
+                }
+                else
+                {
+                    // Fallback: versuche das lokale Format
+                    var fallback = JsonUtility.FromJson<DashboardState>(json);
+                    state = fallback ?? new DashboardState();
+                }
+
+                Debug.Log($"Dashboard state loaded from {saveFilePath} (counter={state.counterValue}, slider={state.sliderValue})");
             }
             else
             {
@@ -190,4 +227,12 @@ public class DashboardManager : MonoBehaviour
     }
 
     #endregion
+
+    // Unterstütztes Netzwerk-Format (falls JSON von NetworkDashboardManager im früheren Schema kommt)
+    [Serializable]
+    private class NetworkFormatState
+    {
+        public int counter;
+        public float slider;
+    }
 }

@@ -1,4 +1,4 @@
-using MixedReality.Toolkit.UX;    
+using MixedReality.Toolkit.UX;
 using Photon.Pun;
 using System.IO;
 using TMPro;
@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Fix: Ersetze Microsoft.MixedReality.Toolkit.UI.Slider durch UnityEngine.UI.Slider
 public class NetworkDashboardManager : MonoBehaviourPun
 {
     [Header("UI References - Deine Elemente")]
@@ -21,49 +20,124 @@ public class NetworkDashboardManager : MonoBehaviourPun
     private int counterValue = 0;
     private float sliderValue = 0f;
 
-    void Start()
+    // Zeitstempel für Konfliktauflösung (PhotonNetwork.Time)
+    private double sliderTimestamp = 0.0;
+
+    // Verhindert Interaktion bis initialer Sync vom Master empfangen wurde
+    private bool isInitializing = true;
+
+    // Unterdrückt Callbacks, wenn Wert programmgesteuert gesetzt wird
+    private bool suppressSliderCallback = false;
+
+    void Awake()
     {
         savePath = Path.Combine(Application.persistentDataPath, "dashboard_state.json");
+        // Standard: bis Sync vom Master ist IEnumerator/Flag aktiv
+        isInitializing = true;
+    }
 
+    void Start()
+    {
+        if (string.IsNullOrEmpty(savePath))
+            savePath = Path.Combine(Application.persistentDataPath, "dashboard_state.json");
+
+        if (valueSlider == null)
+            Debug.LogWarning("NetworkDashboardManager: valueSlider ist nicht gesetzt (Inspector).");
+
+        if (valueSlider != null)
+        {
+            valueSlider.OnValueUpdated.AddListener(OnMrtkSliderValueChanged);
+            Debug.Log("NetworkDashboardManager: Registered OnMrtkSliderValueChanged listener.");
+        }
+
+        // Master lädt lokale Persistenz und broadcastet; Clients fordern Zustand an
         if (PhotonNetwork.IsMasterClient)
         {
             LoadDashboardState();
         }
+        else
+        {
+            // Fordere Zustand beim Master an; Master antwortet per RPC_UpdateCounter/Slider
+            photonView.RPC("RPC_RequestState", RpcTarget.MasterClient);
+        }
+
+        // Fallback: falls Master aus irgendeinem Grund nicht antwortet, beende Initialisierung nach kurzer Zeit
+        StartCoroutine(EndInitializationTimeout());
+    }
+
+    System.Collections.IEnumerator EndInitializationTimeout()
+    {
+        yield return new WaitForSeconds(1.0f);
+        if (isInitializing)
+        {
+            Debug.LogWarning("NetworkDashboardManager: Initialization timeout ended without master sync; enabling local interaction.");
+            isInitializing = false;
+        }
+    }
+
+    // MRTK Slider Event-Handler
+    public void OnMrtkSliderValueChanged(SliderEventData eventData)
+    {
+        float value = eventData.NewValue;
+        OnValueSliderChanged(value);
     }
 
     // COUNTER METHODEN (IncrementButton, ResetButton)
     public void IncrementCounter()
     {
-        //if (!photonView.IsMine) return;
+        if (isInitializing)
+        {
+            Debug.Log("IncrementCounter ignored during initialization (awaiting master sync).");
+            return;
+        }
+
         counterValue++;
         UpdateCounterDisplay();
+
+        // Sende Änderung an alle (inkl. Master) — Master ist verantwortlich für Persistenz
         photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
-        if (PhotonNetwork.IsMasterClient) SaveDashboardState();
     }
 
     public void ResetCounter()
     {
-        //if (!photonView.IsMine) return;
+        if (isInitializing)
+        {
+            Debug.Log("ResetCounter ignored during initialization (awaiting master sync).");
+            return;
+        }
+
         counterValue = 0;
         UpdateCounterDisplay();
         photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
-        if (PhotonNetwork.IsMasterClient) SaveDashboardState();
     }
 
-    // SLIDER METHODE (ValueSlider)
+    // SLIDER METHODE (ValueSlider) — alle Clients dürfen ändern
     public void OnValueSliderChanged(float value)
     {
-        //if (!photonView.IsMine) return;
+        Debug.Log($"OnValueSliderChanged called value={value} suppress={suppressSliderCallback} init={isInitializing}");
+
+        if (isInitializing || suppressSliderCallback)
+        {
+            Debug.Log($"OnValueSliderChanged ignored (init/suppress): {value}");
+            return;
+        }
+
+        if (Mathf.Approximately(value, sliderValue))
+        {
+            Debug.Log($"OnValueSliderChanged no-op (same value): {value}");
+            return;
+        }
+
         sliderValue = value;
+        sliderTimestamp = PhotonNetwork.Time;
 
-        // Null-Check + Slider setzen
-        if (sliderText != null) sliderText.text = value.ToString("F1");
+        if (sliderText != null)
+            sliderText.text = value.ToString("F1");
 
-        // sync für alle Clients
-        photonView.RPC("RPC_UpdateSlider", RpcTarget.All, value);
+        Debug.Log($"OnValueSliderChanged -> sending value={value} ts={sliderTimestamp}");
 
-        // Speichern nur durch MasterClient
-        if (PhotonNetwork.IsMasterClient) SaveDashboardState();
+        // Sende an andere Clients; Master erhält ebenfalls und speichert
+        photonView.RPC("RPC_UpdateSlider", RpcTarget.Others, sliderTimestamp, value);
     }
 
     // Schliessen-Knopf (EmergencyStop)
@@ -78,42 +152,88 @@ public class NetworkDashboardManager : MonoBehaviourPun
 #endif
     }
 
-
     // RPCs (Netzwerk-Sync)
     [PunRPC]
-    void RPC_UpdateCounter(int value)
+    void RPC_RequestState()
     {
-        counterValue = value;
-        UpdateCounterDisplay();
+        // Wird auf Master aufgerufen; dieser broadcastet aktuellen Zustand
+        if (!PhotonNetwork.IsMasterClient) return;
+
+        Debug.Log("RPC_RequestState received on Master; broadcasting state.");
+        sliderTimestamp = PhotonNetwork.Time;
+        photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
+        photonView.RPC("RPC_UpdateSlider", RpcTarget.All, sliderTimestamp, sliderValue);
     }
 
     [PunRPC]
-    void RPC_UpdateSlider(float value)
+    void RPC_UpdateCounter(int value)
     {
+        Debug.Log($"RPC_UpdateCounter received value={value} (was {counterValue})");
+        counterValue = value;
+        UpdateCounterDisplay();
+
+        // Nach erstem Counter-RPC ist der Client initialisiert
+        isInitializing = false;
+
+        // Master speichert persistent, wenn er die Änderung empfangen hat (Master ist authoritative)
+        if (PhotonNetwork.IsMasterClient)
+            SaveDashboardState();
+    }
+
+    [PunRPC]
+    void RPC_UpdateSlider(double timestamp, float value)
+    {
+        Debug.Log($"RPC_UpdateSlider received ts={timestamp} value={value} localTs={sliderTimestamp} isInit={isInitializing}");
+
+        if (timestamp < sliderTimestamp)
+        {
+            Debug.Log("RPC_UpdateSlider ignored: older timestamp.");
+            return;
+        }
+
+        sliderTimestamp = timestamp;
+
+        if (Mathf.Approximately(value, sliderValue) && !isInitializing)
+        {
+            Debug.Log("RPC_UpdateSlider no-op (same value).");
+            isInitializing = false;
+            return;
+        }
+
         sliderValue = value;
 
-        // Null-Check + Slider setzen
+        suppressSliderCallback = true;
         if (valueSlider != null)
-        {
             valueSlider.Value = value;
-            Debug.Log($"Slider RPC: {value} -> {valueSlider.Value}");
-        }
 
-        // Text immer setzen
         if (sliderText != null)
-        {
             sliderText.text = value.ToString("F1");
-        }
+
+        StartCoroutine(ResetSuppress());
+
+        // Master speichert persistent
+        if (PhotonNetwork.IsMasterClient)
+            SaveDashboardState();
+
+        isInitializing = false;
+    }
+
+    System.Collections.IEnumerator ResetSuppress()
+    {
+        yield return null;
+        suppressSliderCallback = false;
     }
 
     //  UI UPDATES
     void UpdateCounterDisplay() => counterText.text = counterValue.ToString();
 
-    // PERSISTENZ (Phase 2 - JSON)
+    // PERSISTENZ
     void SaveDashboardState()
     {
-        var state = new DashboardState { counter = counterValue, slider = sliderValue };
-        File.WriteAllText(savePath, JsonUtility.ToJson(state));
+        if (!PhotonNetwork.IsMasterClient) return; // Nur Master darf persistent speichern
+
+        var legacy = new LegacyDashboardState { counterValue = counterValue, sliderValue = sliderValue };
+        File.WriteAllText(savePath, JsonUtility.ToJson(legacy));
         Debug.Log($"Dashboard saved: Counter={counterValue}, Slider={sliderValue}");
     }
 
@@ -121,13 +241,26 @@ public class NetworkDashboardManager : MonoBehaviourPun
     {
         if (File.Exists(savePath))
         {
-            var state = JsonUtility.FromJson<DashboardState>(File.ReadAllText(savePath));
-            counterValue = state.counter;
-            sliderValue = state.slider;
+            string json = File.ReadAllText(savePath);
 
+            if (json.Contains("counterValue") || json.Contains("sliderValue"))
+            {
+                var legacy = JsonUtility.FromJson<LegacyDashboardState>(json);
+                counterValue = legacy.counterValue;
+                sliderValue = legacy.sliderValue;
+            }
+            else
+            {
+                var state = JsonUtility.FromJson<DashboardState>(json);
+                counterValue = state != null ? state.counter : 0;
+                sliderValue = state != null ? state.slider : 0f;
+            }
+
+            // Broadcast des geladenen Zustands (Master macht das)
+            sliderTimestamp = PhotonNetwork.Time;
             photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
-            photonView.RPC("RPC_UpdateSlider", RpcTarget.All, sliderValue);
-            Debug.Log($"Dashboard loaded: Counter={counterValue}, Slider={sliderValue}");
+            photonView.RPC("RPC_UpdateSlider", RpcTarget.All, sliderTimestamp, sliderValue);
+            Debug.Log($"Dashboard loaded: Counter={counterValue}, Slider={sliderValue} ts={sliderTimestamp}");
         }
     }
 
@@ -136,5 +269,12 @@ public class NetworkDashboardManager : MonoBehaviourPun
     {
         public int counter;
         public float slider;
+    }
+
+    [System.Serializable]
+    private class LegacyDashboardState
+    {
+        public int counterValue;
+        public float sliderValue;
     }
 }

@@ -28,7 +28,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Vector3 pos = cam.position + cam.forward * 0.5f;    //Entfernung des Dashboards vor der Kamera
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
-            GameObject dash = PhotonNetwork.Instantiate("DashboardPanel", pos, rot);
+            // Wichtig: als Room-Objekt instanziieren, damit es bestehen bleibt, wenn der Master geht
+            GameObject dash = PhotonNetwork.InstantiateRoomObject("DashboardPanel", pos, rot);
             Debug.Log($"Dashboard at {pos} - Children: {dash.transform.childCount}");
         }
     }
