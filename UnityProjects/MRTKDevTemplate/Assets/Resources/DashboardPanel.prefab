@@ -50,6 +50,7 @@ GameObject:
   - component: {fileID: -354711522810159732}
   - component: {fileID: 1033650479976195307}
   - component: {fileID: 1216217915008310198}
+  - component: {fileID: 952911497717400162}
   m_Layer: 0
   m_Name: DashboardPanel
   m_TagString: Untagged
@@ -215,6 +216,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   counterText: {fileID: 8413450128034556668}
   sliderText: {fileID: 6718713356564422593}
+--- !u!114 &952911497717400162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 469656155434171243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3bc17e9daf0f664ab87bd1ac5b0dce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointerLinePrefab: {fileID: 7194611371403393302, guid: 21cf1871ae3999c4e8553b9cee7542a4, type: 3}
+  pointerMaterial: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
+  pointerMaterialLeft: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
+  pointerMaterialRight: {fileID: 2100000, guid: 6f29b5c4934377444a145dc8dc4071ea, type: 2}
+  disappearDelay: 0.25
+  pointerLength: 4
+  showLocalPointer: 0
 --- !u!1 &946045137141108793
 GameObject:
   m_ObjectHideFlags: 0
@@ -1013,6 +1033,10 @@ PrefabInstance:
       propertyPath: managedReferences[1].tintables.Array.data[1]
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 5092507605232194742, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5092507605265006331, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
       propertyPath: m_LocalScale.x
       value: 6
@@ -1157,6 +1181,10 @@ PrefabInstance:
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
+    - target: {fileID: 8661210874197233802, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 1811028555225687572, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
@@ -1199,6 +1227,10 @@ PrefabInstance:
     - target: {fileID: 5389724025655928481, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6504255221742628075, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7268022962848498811, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: m_Name
@@ -1243,6 +1275,10 @@ PrefabInstance:
     - target: {fileID: 7268022963301193099, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4278190080
+      objectReference: {fileID: 0}
+    - target: {fileID: 7268022964407445719, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7268022964407445719, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
       propertyPath: m_IsActive
@@ -1373,6 +1409,10 @@ PrefabInstance:
     - target: {fileID: 2783974331088143781, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5092507605232194742, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5092507605265006331, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
       propertyPath: m_LocalScale.x
@@ -1509,6 +1549,10 @@ PrefabInstance:
     - target: {fileID: 5572466351762964349, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
       propertyPath: <OnClicked>k__BackingField.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 8661210874197233802, guid: c25d8f2d22117bd40ad824684551fbde, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
