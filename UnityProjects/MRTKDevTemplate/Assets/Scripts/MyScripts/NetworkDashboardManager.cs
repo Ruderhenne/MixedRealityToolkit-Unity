@@ -114,17 +114,17 @@ public class NetworkDashboardManager : MonoBehaviourPun
     // SLIDER METHODE (ValueSlider) — alle Clients dürfen ändern
     public void OnValueSliderChanged(float value)
     {
-        Debug.Log($"OnValueSliderChanged called value={value} suppress={suppressSliderCallback} init={isInitializing}");
+        //Debug.Log($"OnValueSliderChanged called value={value} suppress={suppressSliderCallback} init={isInitializing}");
 
         if (isInitializing || suppressSliderCallback)
         {
-            Debug.Log($"OnValueSliderChanged ignored (init/suppress): {value}");
+            //Debug.Log($"OnValueSliderChanged ignored (init/suppress): {value}");
             return;
         }
 
         if (Mathf.Approximately(value, sliderValue))
         {
-            Debug.Log($"OnValueSliderChanged no-op (same value): {value}");
+            //Debug.Log($"OnValueSliderChanged no-op (same value): {value}");
             return;
         }
 

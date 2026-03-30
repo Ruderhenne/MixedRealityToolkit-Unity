@@ -426,6 +426,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2351505567455720334, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1372424775}
+    - targetCorrespondingSourceObject: {fileID: 2351505567455720334, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1372424783}
     - targetCorrespondingSourceObject: {fileID: 5727148871348114051, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1372424772}
@@ -579,13 +582,34 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1372424766}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55791bd6c69d8c546ba3a069b642dfdd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   leftHandPalm: {fileID: 1399420000}
   rightHandPalm: {fileID: 2111791271}
+--- !u!114 &1372424783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1372424766}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3bc17e9daf0f664ab87bd1ac5b0dce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointerLinePrefab: {fileID: 7194611371403393302, guid: 21cf1871ae3999c4e8553b9cee7542a4, type: 3}
+  pointerMaterial: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
+  pointerMaterialLeft: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
+  pointerMaterialRight: {fileID: 2100000, guid: 6f29b5c4934377444a145dc8dc4071ea, type: 2}
+  disappearDelay: 0.25
+  pointerLength: 4
+  showLocalPointer: 0
+  enableDebugLogs: 1
+  debugLogInterval: 0.25
 --- !u!4 &1399420000 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8534076846034831389, guid: 4d7e2f87fefe0ba468719b15288b46e7, type: 3}

@@ -1,24 +1,29 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
+using System.Collections.Generic;
 
 public class SharedPointerManager : MonoBehaviourPun
 {
     [Header("Visual")]
     public LineRenderer pointerLinePrefab;
-    [Tooltip("Fallback-Material (wird genutzt, wenn keine spezifischen Materialien gesetzt sind)")]
+    [Tooltip("Fallback-Material")]
     public Material pointerMaterial;
     [Tooltip("Material für den linken Pointer")]
     public Material pointerMaterialLeft;
     [Tooltip("Material für den rechten Pointer")]
     public Material pointerMaterialRight;
-    [Tooltip("Wie lange ein Pointer noch sichtbar bleibt, wenn Handdaten kurzzeitig fehlen (Sekunden)")]
+    [Tooltip("Wie lange ein Pointer sichtbar bleibt, wenn Handdaten fehlen (Sekunden)")]
     public float disappearDelay = 0.25f;
     public float pointerLength = 5f;
 
     [Header("Behaviour")]
-    [Tooltip("Soll der lokale Client seinen eigenen Pointer sehen? (false = nur andere Clients sichtbar)")]
+    [Tooltip("Soll der lokale Client seinen eigenen Pointer sehen?")]
     public bool showLocalPointer = false;
+
+    [Header("Debug")]
+    public bool enableDebugLogs = true;
+    public float debugLogInterval = 0.25f;
 
     private const int LEFT = 0;
     private const int RIGHT = 1;
@@ -26,30 +31,34 @@ public class SharedPointerManager : MonoBehaviourPun
     // Mapping: ActorNumber -> [leftLine, rightLine]
     private Dictionary<int, LineRenderer[]> playerPointers = new Dictionary<int, LineRenderer[]>();
     private Dictionary<int, float[]> lastSeenTime = new Dictionary<int, float[]>();
+    private Dictionary<int, float> lastLogTime = new Dictionary<int, float>();
 
     void Update()
     {
         if (!PhotonNetwork.InRoom || Time.time < 2f) return;
-
         UpdatePointers();
     }
 
     void UpdatePointers()
     {
-        // Erhalte aktuelle Players und ihre ActorNumbers
+        if (!PhotonNetwork.InRoom) return;
+
+        // Aktuelle Spielerliste holen
         var players = PhotonNetwork.PlayerList;
         var currentActors = new HashSet<int>();
         foreach (var p in players)
             currentActors.Add(p.ActorNumber);
 
-        // Sicherstellen: Für jeden Player existieren Pointer
+        // Pointer für neue Spieler erstellen
         foreach (var p in players)
         {
             if (!playerPointers.ContainsKey(p.ActorNumber))
+            {
                 CreatePointersForPlayer(p.ActorNumber);
+            }
         }
 
-        // Entferne Pointer für Spieler, die nicht mehr in der Lobby sind
+        // Pointer für nicht mehr vorhandene Spieler entfernen
         var keysToRemove = new List<int>();
         foreach (var kv in playerPointers)
         {
@@ -61,98 +70,129 @@ public class SharedPointerManager : MonoBehaviourPun
             DestroyPointersForPlayer(actor);
         }
 
-        // Aktualisiere Pointer pro Player
+        // Pointer für jeden Spieler aktualisieren
         foreach (var p in players)
         {
-            // Optional: lokale Pointer unterdrücken
-            if (!showLocalPointer && p == PhotonNetwork.LocalPlayer)
+            // LOKALEN SPIELER IMMER SEPARAT BEHANDELN
+            if (p == PhotonNetwork.LocalPlayer)
             {
-                var localPair = playerPointers[p.ActorNumber];
-                SetPointerVisible(localPair[LEFT], false);
-                SetPointerVisible(localPair[RIGHT], false);
+                HandleLocalPlayer(p);
                 continue;
             }
 
-            var pair = playerPointers[p.ActorNumber];
-            var times = lastSeenTime[p.ActorNumber];
-
-            bool leftValid = false;
-            bool rightValid = false;
-
-            if (p.CustomProperties.ContainsKey("leftHandPos") &&
-                p.CustomProperties.ContainsKey("leftHandDir"))
-            {
-                if (TryParseVector3(p.CustomProperties["leftHandPos"], out Vector3 leftPos) &&
-                    TryParseVector3(p.CustomProperties["leftHandDir"], out Vector3 leftDir))
-                {
-                    Vector3 leftEnd = leftPos + leftDir.normalized * pointerLength;
-                    pair[LEFT].SetPosition(0, leftPos);
-                    pair[LEFT].SetPosition(1, leftEnd);
-                    times[LEFT] = Time.time;
-                    leftValid = true;
-                    SetPointerVisible(pair[LEFT], true);
-                }
-            }
-
-            if (p.CustomProperties.ContainsKey("rightHandPos") &&
-                p.CustomProperties.ContainsKey("rightHandDir"))
-            {
-                if (TryParseVector3(p.CustomProperties["rightHandPos"], out Vector3 rightPos) &&
-                    TryParseVector3(p.CustomProperties["rightHandDir"], out Vector3 rightDir))
-                {
-                    Vector3 rightEnd = rightPos + rightDir.normalized * pointerLength;
-                    pair[RIGHT].SetPosition(0, rightPos);
-                    pair[RIGHT].SetPosition(1, rightEnd);
-                    times[RIGHT] = Time.time;
-                    rightValid = true;
-                    SetPointerVisible(pair[RIGHT], true);
-                }
-            }
-
-            // Rückwärtskompatibilität: headPos/rayDir als primärer (right)
-            if (!leftValid && !rightValid &&
-                p.CustomProperties.ContainsKey("headPos") &&
-                p.CustomProperties.ContainsKey("rayDir"))
-            {
-                if (TryParseVector3(p.CustomProperties["headPos"], out Vector3 headPos) &&
-                    TryParseVector3(p.CustomProperties["rayDir"], out Vector3 headDir))
-                {
-                    Vector3 endPos = headPos + headDir.normalized * pointerLength;
-                    pair[RIGHT].SetPosition(0, headPos);
-                    pair[RIGHT].SetPosition(1, endPos);
-                    times[RIGHT] = Time.time;
-                    rightValid = true;
-                    SetPointerVisible(pair[RIGHT], true);
-                }
-            }
-
-            // Timeout-basierte Ausblendung
-            if (!leftValid && Time.time - times[LEFT] > disappearDelay)
-                SetPointerVisible(pair[LEFT], false);
-            if (!rightValid && Time.time - times[RIGHT] > disappearDelay)
-                SetPointerVisible(pair[RIGHT], false);
+            // NUR REMOTE-SPIELER VERARBEITEN
+            UpdateRemotePlayerPointer(p);
         }
+    }
+
+    void HandleLocalPlayer(Player player)
+    {
+        if (player == null || !playerPointers.ContainsKey(player.ActorNumber)) return;
+
+        var localPair = playerPointers[player.ActorNumber];
+
+        if (showLocalPointer)
+        {
+            SetPointerVisible(localPair[LEFT], true);
+            SetPointerVisible(localPair[RIGHT], true);
+        }
+        else
+        {
+            SetPointerVisible(localPair[LEFT], false);
+            SetPointerVisible(localPair[RIGHT], false);
+        }
+    }
+
+    void UpdateRemotePlayerPointer(Player player)
+    {
+        // SICHERHEITSCHECKS
+        if (player == null || !playerPointers.ContainsKey(player.ActorNumber)) return;
+        if (player == PhotonNetwork.LocalPlayer) return;
+
+        var pair = playerPointers[player.ActorNumber];
+        var times = lastSeenTime[player.ActorNumber];
+
+        bool leftValid = false;
+        bool rightValid = false;
+        Vector3 leftPos = Vector3.zero, leftDir = Vector3.zero;
+        Vector3 rightPos = Vector3.zero, rightDir = Vector3.zero;
+
+        // DATEN VON REMOTE-SPIELER HOLEN
+        bool hasLeftKeys = player.CustomProperties.ContainsKey("leftHandPos") && player.CustomProperties.ContainsKey("leftHandDir");
+        bool hasRightKeys = player.CustomProperties.ContainsKey("rightHandPos") && player.CustomProperties.ContainsKey("rightHandDir");
+
+        // LINKE HAND VERARBEITEN
+        if (hasLeftKeys)
+        {
+            if (TryParseVector3(player.CustomProperties["leftHandPos"], out leftPos) &&
+                TryParseVector3(player.CustomProperties["leftHandDir"], out leftDir))
+            {
+                Vector3 leftEnd = leftPos + leftDir.normalized * pointerLength;
+                pair[LEFT].SetPosition(0, leftPos);
+                pair[LEFT].SetPosition(1, leftEnd);
+                times[LEFT] = Time.time;
+                leftValid = true;
+                SetPointerVisible(pair[LEFT], true);
+
+                if (enableDebugLogs)
+                {
+                    Debug.Log($"[SharedPointerManager] Updated LEFT pointer for REMOTE player {player.ActorNumber}: Pos={leftPos}, Dir={leftDir}");
+                }
+            }
+        }
+
+        // RECHTE HAND VERARBEITEN
+        if (hasRightKeys)
+        {
+            if (TryParseVector3(player.CustomProperties["rightHandPos"], out rightPos) &&
+                TryParseVector3(player.CustomProperties["rightHandDir"], out rightDir))
+            {
+                Vector3 rightEnd = rightPos + rightDir.normalized * pointerLength;
+                pair[RIGHT].SetPosition(0, rightPos);
+                pair[RIGHT].SetPosition(1, rightEnd);
+                times[RIGHT] = Time.time;
+                rightValid = true;
+                SetPointerVisible(pair[RIGHT], true);
+
+                if (enableDebugLogs)
+                {
+                    Debug.Log($"[SharedPointerManager] Updated RIGHT pointer for REMOTE player {player.ActorNumber}: Pos={rightPos}, Dir={rightDir}");
+                }
+            }
+        }
+
+        // TIMEOUT-BASIERTE AUSBLENDUNG
+        if (!leftValid && Time.time - times[LEFT] > disappearDelay)
+            SetPointerVisible(pair[LEFT], false);
+        if (!rightValid && Time.time - times[RIGHT] > disappearDelay)
+            SetPointerVisible(pair[RIGHT], false);
     }
 
     void CreatePointersForPlayer(int actorNumber)
     {
+        if (enableDebugLogs)
+        {
+            Debug.Log($"[SharedPointerManager] Creating pointers for player {actorNumber} (Local: {PhotonNetwork.LocalPlayer.ActorNumber})");
+        }
+
         // Materialauswahl
         Material baseMat = pointerLinePrefab != null ? pointerLinePrefab.sharedMaterial : null;
         Material leftMat = pointerMaterialLeft != null ? pointerMaterialLeft : (pointerMaterial != null ? pointerMaterial : baseMat);
         Material rightMat = pointerMaterialRight != null ? pointerMaterialRight : (pointerMaterial != null ? pointerMaterial : baseMat);
 
-        // WICHTIG: Pointer nicht als Kind von diesem (möglicherweise beweglichen) Objekt erstellen.
-        // Stattdessen in Szenen-Root (null) instantiieren, damit sie sich nicht bewegen, wenn der Master sein Rig bewegt.
+        // Pointer-Instanzen erstellen
         LineRenderer leftLine = Instantiate(pointerLinePrefab);
         LineRenderer rightLine = Instantiate(pointerLinePrefab);
 
-        // Sicherstellen: Parent der Pointer ist die Szenen-Root (keine Bewegung durch lokale Rigs).
+        // Pointer in Szenen-Root platzieren (wichtig!)
         leftLine.transform.SetParent(null, true);
         rightLine.transform.SetParent(null, true);
 
+        // Materialien zuweisen
         if (leftMat != null) leftLine.material = leftMat;
         if (rightMat != null) rightLine.material = rightMat;
 
+        // Standardfarben falls keine Materialien gesetzt
         if (pointerMaterialLeft == null && pointerMaterial == null)
         {
             leftLine.colorGradient = new Gradient()
@@ -177,6 +217,7 @@ public class SharedPointerManager : MonoBehaviourPun
             };
         }
 
+        // Pointer-Einstellungen
         leftLine.sortingLayerName = "UI";
         leftLine.sortingOrder = 1000;
         leftLine.positionCount = 2;
@@ -189,6 +230,7 @@ public class SharedPointerManager : MonoBehaviourPun
         rightLine.useWorldSpace = true;
         rightLine.gameObject.SetActive(false);
 
+        // Pointer speichern
         playerPointers[actorNumber] = new LineRenderer[] { leftLine, rightLine };
         lastSeenTime[actorNumber] = new float[] { Mathf.NegativeInfinity, Mathf.NegativeInfinity };
     }
@@ -203,6 +245,8 @@ public class SharedPointerManager : MonoBehaviourPun
         }
         if (lastSeenTime.ContainsKey(actorNumber))
             lastSeenTime.Remove(actorNumber);
+        if (lastLogTime.ContainsKey(actorNumber))
+            lastLogTime.Remove(actorNumber);
     }
 
     void SetPointerVisible(LineRenderer lr, bool visible)
