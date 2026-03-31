@@ -30,7 +30,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Debug.Log("Master Client creating dashboard...");
 
             Transform cam = Camera.main.transform;
-            Vector3 pos = cam.position + cam.forward * 0.5f;    //Entfernung des Dashboards vor der Kamera
+            Vector3 pos = cam.position + cam.forward * 0.9f;    //Entfernung des Dashboards vor der Kamera
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
             // Wichtig: als Room-Objekt instanziieren, damit es bestehen bleibt, wenn der Master geht

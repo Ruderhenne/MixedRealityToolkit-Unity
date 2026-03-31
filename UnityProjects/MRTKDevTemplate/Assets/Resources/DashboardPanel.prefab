@@ -50,7 +50,6 @@ GameObject:
   - component: {fileID: -354711522810159732}
   - component: {fileID: 1033650479976195307}
   - component: {fileID: 1216217915008310198}
-  - component: {fileID: 952911497717400162}
   m_Layer: 0
   m_Name: DashboardPanel
   m_TagString: Untagged
@@ -67,7 +66,7 @@ Transform:
   m_GameObject: {fileID: 469656155434171243}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6, z: 0.5}
+  m_LocalPosition: {x: 0, y: 1.6, z: 1.22}
   m_LocalScale: {x: 0.6, y: 0.4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -220,27 +219,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   counterText: {fileID: 8413450128034556668}
   sliderText: {fileID: 6718713356564422593}
---- !u!114 &952911497717400162
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 469656155434171243}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3bc17e9daf0f664ab87bd1ac5b0dce6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  pointerLinePrefab: {fileID: 7194611371403393302, guid: 21cf1871ae3999c4e8553b9cee7542a4, type: 3}
-  pointerMaterial: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
-  pointerMaterialLeft: {fileID: 2100000, guid: 89d1fcd5d7c9d414c81adfbfb7602fc7, type: 2}
-  pointerMaterialRight: {fileID: 2100000, guid: 6f29b5c4934377444a145dc8dc4071ea, type: 2}
-  disappearDelay: 0.25
-  pointerLength: 4
-  showLocalPointer: 0
-  enableDebugLogs: 0
-  debugLogInterval: 0.25
 --- !u!1 &560128076993552128
 GameObject:
   m_ObjectHideFlags: 0
@@ -422,8 +400,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4694794627402176939}
-  - component: {fileID: 3508134670016133467}
-  - component: {fileID: 8247248099513696058}
   - component: {fileID: 3373628408615800666}
   m_Layer: 0
   m_Name: QRTracker
@@ -448,38 +424,6 @@ Transform:
   - {fileID: 957504658943041161}
   m_Father: {fileID: 1199849636687623544}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3508134670016133467
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1526527620646926575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Camera: {fileID: 0}
-  m_OriginBaseGameObject: {fileID: 1526527620646926575}
-  m_CameraFloorOffsetObject: {fileID: 0}
-  m_RequestedTrackingOriginMode: 0
-  m_CameraYOffset: 1.1176
---- !u!114 &8247248099513696058
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1526527620646926575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4df6e2a8f5c58cf4184b32d359111444, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  markerPrefab: {fileID: 1443260891189505365, guid: ad26ab2382aecad4b9cc55fdd7d2c89c, type: 3}
-  enabledMarkerTypes: 01000000
-  defaultTransformMode: 0
 --- !u!114 &3373628408615800666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -496,6 +440,11 @@ MonoBehaviour:
   markerAnchor: {fileID: 560128076993552128}
   expectedQRData: CenterMarker-MoshadXR
   statusText: {fileID: 2584892762422640343}
+  statusTextName: statusText
+  scanReticle: {fileID: 0}
+  reticleDistance: 1
+  reticleSize: 0.15
+  reticleMaterial: {fileID: 0}
 --- !u!1 &2739888482281611182
 GameObject:
   m_ObjectHideFlags: 0
@@ -595,7 +544,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ... waiting
+  m_text: "QRTracker bereit. Dr\xFCcke 'Center' zum Scannen."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1197,7 +1146,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4014846479790359150, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.000000008265488
+      value: 0.000000023166649
       objectReference: {fileID: 0}
     - target: {fileID: 6593650948243348711, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1209,7 +1158,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6593650948243348711, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.000000008265488
+      value: 0.000000023166649
       objectReference: {fileID: 0}
     - target: {fileID: 8122412417061775460, guid: 7148f9ce86f62ab4b8d89dc6cfa369a0, type: 3}
       propertyPath: m_LocalScale.x
@@ -2168,6 +2117,10 @@ PrefabInstance:
     - target: {fileID: 1443260891189505365, guid: ad26ab2382aecad4b9cc55fdd7d2c89c, type: 3}
       propertyPath: m_Name
       value: MarkerVisualizer
+      objectReference: {fileID: 0}
+    - target: {fileID: 1443260891189505365, guid: ad26ab2382aecad4b9cc55fdd7d2c89c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
