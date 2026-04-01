@@ -34,7 +34,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
             // Wichtig: als Room-Objekt instanziieren, damit es bestehen bleibt, wenn der Master geht
-            GameObject dash = PhotonNetwork.InstantiateRoomObject("DashboardPanel", pos, rot);
+            GameObject dash = PhotonNetwork.InstantiateRoomObject("DashboardWindow", pos, rot);
 
             Debug.Log($"Dashboard instantiated at {pos} - Children: {dash.transform.childCount}");
 
