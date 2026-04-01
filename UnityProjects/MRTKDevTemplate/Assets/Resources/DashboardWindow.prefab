@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5728830448343596028}
-  - component: {fileID: 2599119643745965343}
   m_Layer: 0
   m_Name: DashboardWindow
   m_TagString: Untagged
@@ -32,15 +31,49 @@ Transform:
   m_Children:
   - {fileID: 2361755394825863739}
   - {fileID: 5020493598693227987}
+  - {fileID: 2121326780773617129}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2599119643745965343
+--- !u!1 &710137232266213611
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2121326780773617129}
+  - component: {fileID: 5598720932675683070}
+  - component: {fileID: 2663434004670236527}
+  m_Layer: 0
+  m_Name: TitleBarGrabHandle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &2121326780773617129
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 710137232266213611}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.024, y: 0.22, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5728830448343596028}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5598720932675683070
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 257622770739559439}
+  m_GameObject: {fileID: 710137232266213611}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50cdab0cd5a0916419324bb54314773d, type: 3}
@@ -48,6 +81,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoConstraintSelection: 1
   selectedConstraints: []
+--- !u!65 &2663434004670236527
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 710137232266213611}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.552, y: 0.03, z: 0.01}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2429891696868454407
 GameObject:
   m_ObjectHideFlags: 0
@@ -149,7 +203,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3668378792434952837}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
@@ -176,10 +230,9 @@ GameObject:
   - component: {fileID: 4103062982019867968}
   - component: {fileID: 1064146986012801986}
   - component: {fileID: 164899053572702396}
-  - component: {fileID: 7904820235583992819}
-  - component: {fileID: 4099447165848901927}
-  - component: {fileID: 886492600452153256}
-  - component: {fileID: 3602269419482025280}
+  - component: {fileID: 6238995714892643923}
+  - component: {fileID: 7402351644896043417}
+  - component: {fileID: 2210588385743303218}
   m_Layer: 0
   m_Name: TitleBar
   m_TagString: Untagged
@@ -246,7 +299,7 @@ MonoBehaviour:
   thickness: 2
   wedges: 8
   calculateSmoothEdges: 1
---- !u!114 &7904820235583992819
+--- !u!114 &6238995714892643923
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -260,7 +313,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoConstraintSelection: 1
   selectedConstraints: []
---- !u!114 &4099447165848901927
+--- !u!114 &7402351644896043417
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -478,7 +531,7 @@ MonoBehaviour:
       m_Calls: []
   hostTransform: {fileID: 5728830448343596028}
   allowedManipulations: 3
-  allowedInteractionTypes: 5
+  allowedInteractionTypes: 1
   rigidbodyMovementType: 0
   applyTorque: 1
   springForceSoftness: 0.1
@@ -497,7 +550,7 @@ MonoBehaviour:
   rotateLerpTime: 0.001
   scaleLerpTime: 0.001
   enableConstraints: 1
-  constraintsManager: {fileID: 7904820235583992819}
+  constraintsManager: {fileID: 5598720932675683070}
   manipulationLogicTypes:
     moveLogicType:
       reference: MixedReality.Toolkit.SpatialManipulation.MoveLogic, MixedReality.Toolkit.SpatialManipulation
@@ -505,24 +558,7 @@ MonoBehaviour:
       reference: MixedReality.Toolkit.SpatialManipulation.RotateLogic, MixedReality.Toolkit.SpatialManipulation
     scaleLogicType:
       reference: MixedReality.Toolkit.SpatialManipulation.ScaleLogic, MixedReality.Toolkit.SpatialManipulation
---- !u!114 &886492600452153256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3924549962155699719}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e13188787cfbdc945b510e90e9251420, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  thisCollider: {fileID: 3602269419482025280}
-  attachedRectTransform: {fileID: 4103062982019867968}
-  padding: {x: 0, y: 0}
-  forceUpdateEveryFrame: 0
-  canToggleCollider: 1
---- !u!65 &3602269419482025280
+--- !u!65 &2210588385743303218
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -541,7 +577,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 552.08, y: 30, z: 50}
+  m_Size: {x: 552.08, y: 30, z: 2}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8156525497683738353
 GameObject:
@@ -1035,6 +1071,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5666617965830310271, guid: 53524bfb42fe2dd429127630606154fc, type: 3}
       propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6816287282102701958, guid: 53524bfb42fe2dd429127630606154fc, type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7310347036900340222, guid: 53524bfb42fe2dd429127630606154fc, type: 3}
