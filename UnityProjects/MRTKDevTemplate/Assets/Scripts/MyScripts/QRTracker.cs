@@ -25,6 +25,12 @@ public class QRTracker : MonoBehaviour
     [Tooltip("Material für das Reticle. Bitte im Editor zuweisen (z.B. Unlit/Color-Material).")]
     [SerializeField] private Material reticleMaterial;
 
+    [Header("Dashboard-Platzierung")]
+    [Tooltip("Abstand vor dem QR-Code in Metern")]
+    [SerializeField] private float dashboardDistance = 0.20f;
+    [Tooltip("Lokaler Offset: X=rechts, Y=oben (aus Sicht des Betrachters)")]
+    [SerializeField] private Vector3 dashboardOffset = Vector3.zero;
+
     private ARMarkerManager markerManager;
     private Camera mainCam;
     private bool isScanning;
@@ -244,11 +250,29 @@ public class QRTracker : MonoBehaviour
 
                         if (dashboardRoot != null)
                         {
-                            // 20cm vor dem QR-Code (entlang seiner Normalen)
-                            Vector3 dashboardPos = markerPos + markerForward * 0.20f;
+                            // Der ARMarker meldet die Position an der oberen linken Ecke
+                            // des QR-Codes. Wir müssen zur Mitte verschieben.
+                            // Dazu nutzen wir die Größe des Markers.
+                            Vector3 markerRight = markerRot * Vector3.right;
+
+                            float markerWidth = marker.size.x;
+                            float markerHeight = marker.size.y;
+
+                            // Von oberer linker Ecke zur Mitte verschieben
+                            Vector3 markerCenter = markerPos
+                                + markerRight * (markerWidth / 2f)
+                                - markerUp * (markerHeight / 2f);
+
+                            Debug.Log($"[QRTracker] Marker size={marker.size} markerPos={markerPos} markerCenter={markerCenter}");
+
+                            // Position vor dem QR-Code-Zentrum
+                            Vector3 dashboardPos = markerCenter + markerForward * dashboardDistance;
 
                             // Dashboard schaut zum Betrachter
                             Quaternion dashboardRot = Quaternion.LookRotation(-markerForward, markerUp);
+
+                            // Optionaler manueller Offset
+                            dashboardPos += dashboardRot * dashboardOffset;
 
                             dashboardRoot.transform.SetPositionAndRotation(dashboardPos, dashboardRot);
 
