@@ -46,6 +46,7 @@ MonoBehaviour:
   - RPC_UpdateSlider
   - RPC_RequestState
   - RPC_SetDashboardTransform
+  - RPC_LogStatus
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

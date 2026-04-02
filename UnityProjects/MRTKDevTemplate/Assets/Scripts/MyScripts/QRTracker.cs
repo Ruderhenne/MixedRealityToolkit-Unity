@@ -32,7 +32,7 @@ public class QRTracker : MonoBehaviour
 
     [Header("Stabilisierung")]
     [Tooltip("Anzahl der Tracking-Samples bevor das Dashboard platziert wird")]
-    [SerializeField] private int requiredSamples = 15;
+    [SerializeField] private int requiredSamples = 5;
     [Tooltip("Minimale Wartezeit in Sekunden nach dem ersten Scan")]
     [SerializeField] private float minStabilizationTime = 2.0f;
 

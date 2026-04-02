@@ -25,28 +25,24 @@ public class RoomManager : MonoBehaviourPunCallbacks
         Debug.Log($"Current Room Players: {PhotonNetwork.CurrentRoom.PlayerCount}");
         Debug.Log($"Local Player Actor Number: {PhotonNetwork.LocalPlayer.ActorNumber}");
 
+        StatusLogger.Log($"User {PhotonNetwork.LocalPlayer.ActorNumber}: Joined session");
+
         if (PhotonNetwork.IsMasterClient)
         {
             Debug.Log("Master Client creating dashboard...");
 
             Transform cam = Camera.main.transform;
-            Vector3 pos = cam.position + cam.forward * 1.1f;    //Entfernung des Dashboards vor der Kamera
+            Vector3 pos = cam.position + cam.forward * 1.1f;
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
-            // Wichtig: als Room-Objekt instanziieren, damit es bestehen bleibt, wenn der Master geht
             GameObject dash = PhotonNetwork.InstantiateRoomObject("DashboardWindow", pos, rot);
 
             Debug.Log($"Dashboard instantiated at {pos} - Children: {dash.transform.childCount}");
-
-            // Master hat nun sein eigenes Dashboard mit seinem eigenen SharedPointerManager
-            // Der SharedPointerManager ist am XR-Rig, nicht am Prefab
             Debug.Log($"Master Dashboard created successfully");
         }
         else
         {
             Debug.Log("Non-Master Client joining room...");
-            // Client erhält das Dashboard vom Master
-            // Der SharedPointerManager ist am XR-Rig des Clients
         }
     }
 
@@ -54,12 +50,16 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         Debug.Log($"Player entered room: {newPlayer.ActorNumber}");
         Debug.Log($"Total players in room: {PhotonNetwork.CurrentRoom.PlayerCount}");
+
+        StatusLogger.Log($"User {newPlayer.ActorNumber}: Joined session");
     }
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         Debug.Log($"Player left room: {otherPlayer.ActorNumber}");
         Debug.Log($"Remaining players in room: {PhotonNetwork.CurrentRoom.PlayerCount}");
+
+        StatusLogger.Log($"User {otherPlayer.ActorNumber}: Left session");
     }
 
     public override void OnLeftRoom()

@@ -2,9 +2,12 @@ using MixedReality.Toolkit.UX;
 using Photon.Pun;
 using System.IO;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class NetworkDashboardManager : MonoBehaviourPun
 {
@@ -29,10 +32,14 @@ public class NetworkDashboardManager : MonoBehaviourPun
     // Unterdrückt Callbacks, wenn Wert programmgesteuert gesetzt wird
     private bool suppressSliderCallback = false;
 
+    // Tracking, ob der Slider gerade aktiv manipuliert wird
+    private bool isSliderGrabbed = false;
+    private int sliderGrabUserNumber = -1;
+    private float sliderValueBeforeGrab = 0f;
+
     void Awake()
     {
         savePath = Path.Combine(Application.persistentDataPath, "dashboard_state.json");
-        // Standard: bis Sync vom Master ist IEnumerator/Flag aktiv
         isInitializing = true;
     }
 
@@ -47,21 +54,21 @@ public class NetworkDashboardManager : MonoBehaviourPun
         if (valueSlider != null)
         {
             valueSlider.OnValueUpdated.AddListener(OnMrtkSliderValueChanged);
-            Debug.Log("NetworkDashboardManager: Registered OnMrtkSliderValueChanged listener.");
+            valueSlider.lastSelectExited.AddListener(OnSliderReleased);
+            valueSlider.firstSelectEntered.AddListener(OnSliderGrabbed);
+
+            Debug.Log("NetworkDashboardManager: Registered OnMrtkSliderValueChanged + Select listeners.");
         }
 
-        // Master lädt lokale Persistenz und broadcastet; Clients fordern Zustand an
         if (PhotonNetwork.IsMasterClient)
         {
             LoadDashboardState();
         }
         else
         {
-            // Fordere Zustand beim Master an; Master antwortet per RPC_UpdateCounter/Slider
             photonView.RPC("RPC_RequestState", RpcTarget.MasterClient);
         }
 
-        // Fallback: falls Master aus irgendeinem Grund nicht antwortet, beende Initialisierung nach kurzer Zeit
         StartCoroutine(EndInitializationTimeout());
     }
 
@@ -75,6 +82,33 @@ public class NetworkDashboardManager : MonoBehaviourPun
         }
     }
 
+    private int GetLocalUserNumber()
+    {
+        return PhotonNetwork.LocalPlayer.ActorNumber;
+    }
+
+    // Slider Grab/Release Callbacks
+    private void OnSliderGrabbed(SelectEnterEventArgs args)
+    {
+        isSliderGrabbed = true;
+        sliderGrabUserNumber = GetLocalUserNumber();
+        sliderValueBeforeGrab = sliderValue;
+    }
+
+    private void OnSliderReleased(SelectExitEventArgs args)
+    {
+        if (isSliderGrabbed)
+        {
+            isSliderGrabbed = false;
+
+            int fromVal = Mathf.RoundToInt(sliderValueBeforeGrab);
+            int toVal = Mathf.RoundToInt(sliderValue);
+
+            photonView.RPC("RPC_LogStatus", RpcTarget.All,
+                $"User {sliderGrabUserNumber}: Slider changed from {fromVal} to {toVal}");
+        }
+    }
+
     // MRTK Slider Event-Handler
     public void OnMrtkSliderValueChanged(SliderEventData eventData)
     {
@@ -82,7 +116,7 @@ public class NetworkDashboardManager : MonoBehaviourPun
         OnValueSliderChanged(value);
     }
 
-    // COUNTER METHODEN (IncrementButton, ResetButton)
+    // COUNTER METHODEN
     public void IncrementCounter()
     {
         if (isInitializing)
@@ -94,7 +128,9 @@ public class NetworkDashboardManager : MonoBehaviourPun
         counterValue++;
         UpdateCounterDisplay();
 
-        // Sende Änderung an alle (inkl. Master) — Master ist verantwortlich für Persistenz
+        photonView.RPC("RPC_LogStatus", RpcTarget.All,
+            $"User {GetLocalUserNumber()}: Increment button pressed");
+
         photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
     }
 
@@ -108,41 +144,42 @@ public class NetworkDashboardManager : MonoBehaviourPun
 
         counterValue = 0;
         UpdateCounterDisplay();
+
+        photonView.RPC("RPC_LogStatus", RpcTarget.All,
+            $"User {GetLocalUserNumber()}: Reset button pressed");
+
         photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
     }
 
-    // SLIDER METHODE (ValueSlider) — alle Clients dürfen ändern
+    // SLIDER METHODE
     public void OnValueSliderChanged(float value)
     {
-        //Debug.Log($"OnValueSliderChanged called value={value} suppress={suppressSliderCallback} init={isInitializing}");
-
         if (isInitializing || suppressSliderCallback)
-        {
-            //Debug.Log($"OnValueSliderChanged ignored (init/suppress): {value}");
             return;
-        }
 
         if (Mathf.Approximately(value, sliderValue))
-        {
-            //Debug.Log($"OnValueSliderChanged no-op (same value): {value}");
             return;
-        }
 
         sliderValue = value;
         sliderTimestamp = PhotonNetwork.Time;
 
         if (sliderText != null)
-            sliderText.text = value.ToString("F1");
+            sliderText.text = Mathf.RoundToInt(value).ToString();
 
         Debug.Log($"OnValueSliderChanged -> sending value={value} ts={sliderTimestamp}");
 
-        // Sende an andere Clients; Master erhält ebenfalls und speichert
         photonView.RPC("RPC_UpdateSlider", RpcTarget.Others, sliderTimestamp, value);
     }
 
-    // Schliessen-Knopf (EmergencyStop)
+    // EmergencyStop
     public void OnEmergencyStopPressed()
     {
+        if (PhotonNetwork.InRoom)
+        {
+            photonView.RPC("RPC_LogStatus", RpcTarget.All,
+                $"User {GetLocalUserNumber()}: Emergency stop pressed");
+        }
+
         Debug.Log("Emergency stop pressed. Exiting application.");
 
 #if UNITY_EDITOR
@@ -152,11 +189,10 @@ public class NetworkDashboardManager : MonoBehaviourPun
 #endif
     }
 
-    // RPCs (Netzwerk-Sync)
+    // RPCs
     [PunRPC]
     void RPC_RequestState()
     {
-        // Wird auf Master aufgerufen; dieser broadcastet aktuellen Zustand
         if (!PhotonNetwork.IsMasterClient) return;
 
         Debug.Log("RPC_RequestState received on Master; broadcasting state.");
@@ -172,10 +208,8 @@ public class NetworkDashboardManager : MonoBehaviourPun
         counterValue = value;
         UpdateCounterDisplay();
 
-        // Nach erstem Counter-RPC ist der Client initialisiert
         isInitializing = false;
 
-        // Master speichert persistent, wenn er die Änderung empfangen hat (Master ist authoritative)
         if (PhotonNetwork.IsMasterClient)
             SaveDashboardState();
     }
@@ -207,15 +241,20 @@ public class NetworkDashboardManager : MonoBehaviourPun
             valueSlider.Value = value;
 
         if (sliderText != null)
-            sliderText.text = value.ToString("F1");
+            sliderText.text = Mathf.RoundToInt(value).ToString();
 
         StartCoroutine(ResetSuppress());
 
-        // Master speichert persistent
         if (PhotonNetwork.IsMasterClient)
             SaveDashboardState();
 
         isInitializing = false;
+    }
+
+    [PunRPC]
+    void RPC_LogStatus(string message)
+    {
+        StatusLogger.Log(message);
     }
 
     System.Collections.IEnumerator ResetSuppress()
@@ -224,12 +263,6 @@ public class NetworkDashboardManager : MonoBehaviourPun
         suppressSliderCallback = false;
     }
 
-    /// <summary>
-    /// Wird vom Master via QRTracker gesendet, wenn das Dashboard
-    /// auf den QR-Code zentriert wurde. Setzt Position und Rotation
-    /// auf allen Clients direkt, ohne dass der PhotonTransformView
-    /// stört.
-    /// </summary>
     [PunRPC]
     void RPC_SetDashboardTransform(float px, float py, float pz,
                                    float rx, float ry, float rz, float rw)
@@ -237,7 +270,6 @@ public class NetworkDashboardManager : MonoBehaviourPun
         var pos = new Vector3(px, py, pz);
         var rot = new Quaternion(rx, ry, rz, rw);
 
-        // PhotonTransformView kurz deaktivieren
         var transformView = GetComponent<PhotonTransformView>();
         var transformViewClassic = GetComponent<PhotonTransformViewClassic>();
 
@@ -248,18 +280,15 @@ public class NetworkDashboardManager : MonoBehaviourPun
 
         Debug.Log($"[NetworkDashboardManager] RPC_SetDashboardTransform: pos={pos} rot={rot.eulerAngles}");
 
-        // Wieder aktivieren – neue Position ist jetzt die Sync-Basis
         if (transformView != null)        transformView.enabled = true;
         if (transformViewClassic != null) transformViewClassic.enabled = true;
     }
 
-    //  UI UPDATES
     void UpdateCounterDisplay() => counterText.text = counterValue.ToString();
 
-    // PERSISTENZ
     void SaveDashboardState()
     {
-        if (!PhotonNetwork.IsMasterClient) return; // Nur Master darf persistent speichern
+        if (!PhotonNetwork.IsMasterClient) return;
 
         var legacy = new LegacyDashboardState { counterValue = counterValue, sliderValue = sliderValue };
         File.WriteAllText(savePath, JsonUtility.ToJson(legacy));
@@ -285,7 +314,6 @@ public class NetworkDashboardManager : MonoBehaviourPun
                 sliderValue = state != null ? state.slider : 0f;
             }
 
-            // Broadcast des geladenen Zustands (Master macht das)
             sliderTimestamp = PhotonNetwork.Time;
             photonView.RPC("RPC_UpdateCounter", RpcTarget.All, counterValue);
             photonView.RPC("RPC_UpdateSlider", RpcTarget.All, sliderTimestamp, sliderValue);

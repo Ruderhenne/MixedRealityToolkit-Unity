@@ -460,6 +460,7 @@ GameObject:
   - component: {fileID: 132571078325128982}
   - component: {fileID: 7588403207397320491}
   - component: {fileID: 2584892762422640343}
+  - component: {fileID: 8570417586247717000}
   m_Layer: 0
   m_Name: statusText
   m_TagString: Untagged
@@ -506,7 +507,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  - {fileID: 2147374, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -548,10 +549,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "QRTracker bereit. Dr\xFCcke 'Center' zum Scannen."
+  m_text: Dashboard ready.
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
+  m_sharedMaterial: {fileID: 2147374, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -620,6 +621,21 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 7588403207397320491}
   m_maskType: 0
+--- !u!114 &8570417586247717000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2739888482281611182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3c31c96edb3472449736e9a15565537, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  statusText: {fileID: 2584892762422640343}
+  clearDelay: 7
+  maxLines: 3
 --- !u!1 &4586303397875971712
 GameObject:
   m_ObjectHideFlags: 0

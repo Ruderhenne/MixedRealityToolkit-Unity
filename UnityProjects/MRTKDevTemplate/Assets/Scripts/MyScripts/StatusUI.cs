@@ -10,17 +10,14 @@ public class StatusUI : MonoBehaviour
 
     IEnumerator Start()
     {
-        // Sofortversuch: auf dem gleichen GameObject oder in Children (inkl. deaktivierter)
         text = GetComponent<TMPro.TMP_Text>() ?? GetComponentInChildren<TMPro.TMP_Text>(true);
 
-        // Falls ein spezieller Child‑Name bekannt ist, kurz prüfen
         if (text == null && !string.IsNullOrEmpty(statusChildName))
         {
             var t = transform.Find(statusChildName);
             if (t != null) text = t.GetComponent<TMPro.TMP_Text>();
         }
 
-        // Kurzes Warten (z. B. falls Prefab noch parented/aktiviert wird)
         float timeout = 3f;
         float timer = 0f;
         while (text == null && timer < timeout)
@@ -32,31 +29,34 @@ public class StatusUI : MonoBehaviour
 
         if (text == null)
         {
-            Debug.LogWarning($"StatusUI: Kein TMP_Text auf oder unter '{name}' gefunden. Prüfe Hierarchie und Komponententyp (TMP vs TMPUGUI).");
+            Debug.LogWarning($"StatusUI: No TMP_Text found on or under '{name}'. Check hierarchy and component type (TMP vs TMPUGUI).");
             yield break;
         }
 
-        // QRTracker zur Laufzeit finden, falls nicht per Inspector gesetzt
         if (qrTracker == null)
             qrTracker = FindObjectOfType<QRTracker>();
 
         if (qrTracker != null)
         {
-            // Explizite Umwandlung von TMP_Text zu TextMeshPro
             if (text is TMPro.TextMeshPro tmp)
             {
                 qrTracker.statusText = tmp;
             }
             else
             {
-                Debug.LogWarning("StatusUI: Das gefundene TMP_Text ist kein TextMeshPro. Status-Updates werden nicht übermittelt.");
+                Debug.LogWarning("StatusUI: Found TMP_Text is not TextMeshPro. Status updates will not be forwarded.");
             }
         }
         else
         {
-            Debug.LogWarning("StatusUI: Kein QRTracker in der Szene gefunden. Status-Updates werden nicht übermittelt.");
+            Debug.LogWarning("StatusUI: No QRTracker found in scene. Status updates will not be forwarded.");
         }
 
-        text.text = "Bereit";
+        if (StatusLogger.Instance != null)
+        {
+            StatusLogger.Instance.SetStatusText(text);
+        }
+
+        text.text = "Dashboard ready";
     }
 }
