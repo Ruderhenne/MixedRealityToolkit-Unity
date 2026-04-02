@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.XR.ARSubsystems;
 using Microsoft.MixedReality.OpenXR;
 using TMPro;
+using Photon.Pun;
 
 public class QRTracker : MonoBehaviour
 {
@@ -28,8 +29,12 @@ public class QRTracker : MonoBehaviour
     [Header("Dashboard-Platzierung")]
     [Tooltip("Abstand vor dem QR-Code in Metern")]
     [SerializeField] private float dashboardDistance = 0.20f;
-    [Tooltip("Lokaler Offset: X=rechts, Y=oben (aus Sicht des Betrachters)")]
-    [SerializeField] private Vector3 dashboardOffset = Vector3.zero;
+
+    [Header("Stabilisierung")]
+    [Tooltip("Anzahl der Tracking-Samples bevor das Dashboard platziert wird")]
+    [SerializeField] private int requiredSamples = 15;
+    [Tooltip("Minimale Wartezeit in Sekunden nach dem ersten Scan")]
+    [SerializeField] private float minStabilizationTime = 2.0f;
 
     private ARMarkerManager markerManager;
     private Camera mainCam;
@@ -37,21 +42,24 @@ public class QRTracker : MonoBehaviour
     private bool markerManagerSubscribed;
     private bool qrFound;
 
+    // Stabilisierungs-Daten
+    private List<Vector3> positionSamples = new List<Vector3>();
+    private List<Quaternion> rotationSamples = new List<Quaternion>();
+    private float firstSampleTime;
+    private bool isStabilizing;
+    private TrackableId stabilizingMarkerId;
+
     private static QRTracker sceneInstance;
     private Coroutine clearTextCoroutine;
 
     void Awake()
     {
         mainCam = Camera.main;
-
         markerManager = GetComponent<ARMarkerManager>();
 
         if (markerManager != null)
         {
             sceneInstance = this;
-            // ARMarkerManager NICHT deaktivieren – das Scene-Marker-Subsystem
-            // braucht Zeit, um QR-Codes in der Umgebung zu finden.
-            // Es bleibt von Anfang an aktiv.
             Debug.Log("[QRTracker] Szenen-Instanz mit ARMarkerManager registriert.");
         }
 
@@ -68,9 +76,8 @@ public class QRTracker : MonoBehaviour
         }
 
         if (scanReticle == null)
-        {
             scanReticle = CreateDefaultReticle();
-        }
+
         scanReticle.SetActive(false);
     }
 
@@ -78,13 +85,9 @@ public class QRTracker : MonoBehaviour
     {
         if (markerManager != null)
         {
-            // Szenen-Instanz: sofort subscriben und Manager aktiviert lassen
             markerManager.markersChanged += OnMarkersChanged;
             markerManagerSubscribed = true;
 
-            //LogStatus("QRTracker bereit. Drücke 'Center' zum Scannen.");
-
-            // Debug: Subsystem-Status nach ein paar Frames loggen
             yield return new WaitForSeconds(2f);
             var subsystem = markerManager.subsystem;
             if (subsystem != null)
@@ -95,11 +98,10 @@ public class QRTracker : MonoBehaviour
             yield break;
         }
 
-        // Prefab-Instanz: auf die Szenen-Instanz warten
         float timeout = 10f;
         float timer = 0f;
         while (sceneInstance == null && timer < timeout)
-        {  
+        {
             timer += Time.deltaTime;
             yield return null;
         }
@@ -127,7 +129,6 @@ public class QRTracker : MonoBehaviour
 
     public void StartScanning()
     {
-        // Prefab-Instanz → an Szenen-Instanz delegieren
         if (markerManager == null && sceneInstance != null && sceneInstance != this)
         {
             Debug.Log("[QRTracker] Prefab-Instanz delegiert StartScanning an Szenen-Instanz.");
@@ -145,8 +146,10 @@ public class QRTracker : MonoBehaviour
 
         isScanning = true;
         qrFound = false;
+        isStabilizing = false;
+        positionSamples.Clear();
+        rotationSamples.Clear();
 
-        // Sicherstellen dass Manager und Subscription aktiv sind
         if (!markerManager.enabled)
         {
             markerManager.enabled = true;
@@ -162,8 +165,6 @@ public class QRTracker : MonoBehaviour
 
         if (scanReticle != null) scanReticle.SetActive(true);
         LogStatus("Suche QR-Code... Blicke auf den QR-Code und bewege den Kopf langsam.");
-
-        // Timeout-Coroutine: nach 30s Feedback geben
         StartCoroutine(ScanTimeout(30f));
     }
 
@@ -174,10 +175,7 @@ public class QRTracker : MonoBehaviour
         if (isScanning && !qrFound)
         {
             var subsystem = markerManager.subsystem;
-            string subsystemInfo = subsystem != null
-                ? $"running={subsystem.running}"
-                : "NULL";
-
+            string subsystemInfo = subsystem != null ? $"running={subsystem.running}" : "NULL";
             LogStatus($"Noch kein QR-Code gefunden. Subsystem: {subsystemInfo}. " +
                       "Halte den QR-Code ruhig, ca. 50cm-1m Abstand.", true);
         }
@@ -186,8 +184,8 @@ public class QRTracker : MonoBehaviour
     public void StopScanning()
     {
         isScanning = false;
+        isStabilizing = false;
         if (scanReticle != null) scanReticle.SetActive(false);
-        // ARMarkerManager NICHT deaktivieren – soll weiterlaufen
     }
 
     void Update()
@@ -201,13 +199,8 @@ public class QRTracker : MonoBehaviour
 
     private void OnMarkersChanged(ARMarkersChangedEventArgs args)
     {
-        int total = (args.added?.Count ?? 0) + (args.updated?.Count ?? 0) + (args.removed?.Count ?? 0);
-
-        // Immer loggen wenn Marker erkannt werden – auch wenn nicht aktiv gescannt wird
         Debug.Log($"[QRTracker] OnMarkersChanged: +{args.added?.Count ?? 0} ~{args.updated?.Count ?? 0} -{args.removed?.Count ?? 0} (isScanning={isScanning})");
-
         if (!isScanning) return;
-
         ProcessMarkers(args.added);
         ProcessMarkers(args.updated);
     }
@@ -219,84 +212,133 @@ public class QRTracker : MonoBehaviour
         foreach (var marker in markers)
         {
             Debug.Log($"[QRTracker] Marker: id={marker.trackableId} state={marker.trackingState} type={marker.markerType}");
+            if (marker.trackingState != TrackingState.Tracking) continue;
 
-            if (marker.trackingState == TrackingState.Tracking)
+            try
             {
-                try
+                string qrData = markerManager.GetDecodedString(marker.trackableId);
+                if (qrData != null) qrData = qrData.Trim();
+
+                if (!string.Equals(qrData, expectedQRData, StringComparison.OrdinalIgnoreCase))
                 {
-                    string qrData = markerManager.GetDecodedString(marker.trackableId);
-                    if (qrData != null) qrData = qrData.Trim();
+                    LogStatus($"QR: '{qrData}' (erwartet '{expectedQRData}').");
+                    continue;
+                }
 
-                    LogStatus($"QR-Code erkannt: '{qrData}'");
+                if (!isStabilizing)
+                {
+                    isStabilizing = true;
+                    stabilizingMarkerId = marker.trackableId;
+                    firstSampleTime = Time.time;
+                    positionSamples.Clear();
+                    rotationSamples.Clear();
+                    LogStatus($"QR-Code erkannt – stabilisiere... (0/{requiredSamples})");
+                }
 
-                    if (string.Equals(qrData, expectedQRData, StringComparison.OrdinalIgnoreCase))
+                if (marker.trackableId != stabilizingMarkerId) continue;
+
+                // KAMERA-RELATIV speichern: Position und Rotation des Markers
+                // im lokalen Raum der Kamera. Dadurch ist das Ergebnis
+                // unabhängig vom Welt-Ursprung (= Startposition der HoloLens).
+                Vector3 markerPosInCamSpace = mainCam.transform.InverseTransformPoint(marker.transform.position);
+                Quaternion markerRotInCamSpace = Quaternion.Inverse(mainCam.transform.rotation) * marker.transform.rotation;
+
+                positionSamples.Add(markerPosInCamSpace);
+                rotationSamples.Add(markerRotInCamSpace);
+
+                float elapsed = Time.time - firstSampleTime;
+                int count = positionSamples.Count;
+
+                Debug.Log($"[QRTracker] Sample {count}/{requiredSamples}, elapsed={elapsed:F2}s, camSpacePos={markerPosInCamSpace}");
+                LogStatus($"Stabilisiere... ({count}/{requiredSamples})");
+
+                if (count >= requiredSamples && elapsed >= minStabilizationTime)
+                {
+                    qrFound = true;
+
+                    // Kamera-relativen Durchschnitt bilden
+                    Vector3 avgCamPos = Vector3.zero;
+                    foreach (var p in positionSamples) avgCamPos += p;
+                    avgCamPos /= count;
+
+                    Quaternion avgCamRot = rotationSamples[0];
+                    for (int i = 1; i < rotationSamples.Count; i++)
+                        avgCamRot = Quaternion.Slerp(avgCamRot, rotationSamples[i], 1f / (i + 1));
+
+                    // Zurück in Weltkoordinaten – aber jetzt ZUVERLÄSSIG,
+                    // weil der Mittelwert im Kameraraum gebildet wurde.
+                    Vector3 avgWorldPos = mainCam.transform.TransformPoint(avgCamPos);
+                    Quaternion avgWorldRot = mainCam.transform.rotation * avgCamRot;
+
+                    Vector3 markerForward = avgWorldRot * Vector3.forward;
+                    Vector3 markerUp     = avgWorldRot * Vector3.up;
+
+                    Debug.Log($"[QRTracker] FINAL camPos={avgCamPos} worldPos={avgWorldPos} rot={avgWorldRot.eulerAngles} samples={count}");
+
+                    if (markerAnchor != null)
+                        markerAnchor.transform.SetPositionAndRotation(avgWorldPos, avgWorldRot);
+
+                    if (dashboardRoot != null)
                     {
-                        qrFound = true;
-
-                        Vector3 markerPos = marker.transform.position;
-                        Quaternion markerRot = marker.transform.rotation;
-
-                        // Z-Achse des Markers zeigt aus der Wand heraus (zum Betrachter)
-                        Vector3 markerForward = markerRot * Vector3.forward;
-                        // Y-Achse des Markers zeigt "oben" am QR-Code entlang
-                        Vector3 markerUp = markerRot * Vector3.up;
-
-                        Debug.Log($"[QRTracker] Marker Pos={markerPos} Rot={markerRot.eulerAngles} Forward={markerForward} Up={markerUp}");
-
-                        if (markerAnchor != null)
-                        {
-                            markerAnchor.transform.SetPositionAndRotation(markerPos, markerRot);
-                        }
-
-                        if (dashboardRoot != null)
-                        {
-                            // Der ARMarker meldet die Position an der oberen linken Ecke
-                            // des QR-Codes. Wir müssen zur Mitte verschieben.
-                            // Dazu nutzen wir die Größe des Markers.
-                            Vector3 markerRight = markerRot * Vector3.right;
-
-                            float markerWidth = marker.size.x;
-                            float markerHeight = marker.size.y;
-
-                            // Von oberer linker Ecke zur Mitte verschieben
-                            Vector3 markerCenter = markerPos
-                                + markerRight * (markerWidth / 2f)
-                                - markerUp * (markerHeight / 2f);
-
-                            Debug.Log($"[QRTracker] Marker size={marker.size} markerPos={markerPos} markerCenter={markerCenter}");
-
-                            // Position vor dem QR-Code-Zentrum
-                            Vector3 dashboardPos = markerCenter + markerForward * dashboardDistance;
-
-                            // Dashboard schaut zum Betrachter
-                            Quaternion dashboardRot = Quaternion.LookRotation(-markerForward, markerUp);
-
-                            // Optionaler manueller Offset
-                            dashboardPos += dashboardRot * dashboardOffset;
-
-                            dashboardRoot.transform.SetPositionAndRotation(dashboardPos, dashboardRot);
-
-                            LogStatus("Dashboard zentriert auf CenterMarker!");
-                        }
-                        else
-                        {
-                            LogStatus("Kein DashboardRoot zugewiesen.", true);
-                        }
-
-                        StopScanning();
-                        return;
+                        Vector3 dashboardPos  = avgWorldPos + markerForward * dashboardDistance;
+                        Quaternion dashboardRot = Quaternion.LookRotation(-markerForward, markerUp);
+                        ApplyDashboardTransform(dashboardPos, dashboardRot);
                     }
                     else
                     {
-                        LogStatus($"QR: '{qrData}' (erwartet '{expectedQRData}').");
+                        LogStatus("Kein DashboardRoot zugewiesen.", true);
                     }
-                }
-                catch (Exception e)
-                {
-                    LogStatus("Fehler: " + e.Message, true);
+
+                    StopScanning();
+                    return;
                 }
             }
+            catch (Exception e)
+            {
+                LogStatus("Fehler: " + e.Message, true);
+            }
         }
+    }
+
+    /// <summary>
+    /// Setzt Position und Rotation des Dashboards.
+    /// Deaktiviert dabei vorübergehend den PhotonTransformView,
+    /// damit der Netzwerk-Sync die neue Position nicht sofort überschreibt.
+    /// Danach wird die neue Position per RPC an alle Clients gesendet.
+    /// </summary>
+    private void ApplyDashboardTransform(Vector3 pos, Quaternion rot)
+    {
+        // PhotonTransformView (und ggf. PhotonTransformViewClassic) kurz deaktivieren,
+        // damit Photon die neue Transformation nicht sofort mit dem alten
+        // Netzwerkzustand überschreibt.
+        var photonView = dashboardRoot.GetComponent<PhotonView>();
+        var transformView = dashboardRoot.GetComponent<PhotonTransformView>();
+        var transformViewClassic = dashboardRoot.GetComponent<PhotonTransformViewClassic>();
+
+        if (transformView != null)   transformView.enabled = false;
+        if (transformViewClassic != null) transformViewClassic.enabled = false;
+
+        // Transformation lokal setzen
+        dashboardRoot.transform.SetPositionAndRotation(pos, rot);
+
+        Debug.Log($"[QRTracker] Dashboard gesetzt: pos={pos} rot={rot.eulerAngles}");
+
+        // Neue Position an alle Clients broadcasten (nur Master darf das)
+        if (photonView != null && PhotonNetwork.IsMasterClient)
+        {
+            photonView.RPC("RPC_SetDashboardTransform", RpcTarget.AllBuffered,
+                pos.x, pos.y, pos.z,
+                rot.x, rot.y, rot.z, rot.w);
+
+            Debug.Log("[QRTracker] RPC_SetDashboardTransform gesendet.");
+        }
+
+        // PhotonTransformView wieder aktivieren – ab jetzt wird die neue
+        // Position als Basis für den Sync verwendet.
+        if (transformView != null)   transformView.enabled = true;
+        if (transformViewClassic != null) transformViewClassic.enabled = true;
+
+        LogStatus("Dashboard zentriert auf CenterMarker!");
     }
 
     void OnDestroy()
@@ -308,9 +350,7 @@ public class QRTracker : MonoBehaviour
         }
 
         if (sceneInstance == this)
-        {
             sceneInstance = null;
-        }
     }
 
     private void LogStatus(string message, bool isWarning = false)
@@ -325,10 +365,7 @@ public class QRTracker : MonoBehaviour
             try
             {
                 statusText.text = message;
-
-                if (clearTextCoroutine != null)
-                    StopCoroutine(clearTextCoroutine);
-
+                if (clearTextCoroutine != null) StopCoroutine(clearTextCoroutine);
                 clearTextCoroutine = StartCoroutine(ClearStatusText(5f));
             }
             catch (Exception) { }
@@ -338,13 +375,11 @@ public class QRTracker : MonoBehaviour
     private IEnumerator ClearStatusText(float delay)
     {
         yield return new WaitForSeconds(delay);
-
         if (statusText != null)
         {
             try { statusText.text = ""; }
             catch (Exception) { }
         }
-
         clearTextCoroutine = null;
     }
 
@@ -401,10 +436,7 @@ public class QRTracker : MonoBehaviour
             lr.startColor = Color.green;
             lr.endColor = Color.green;
 
-            if (mat != null)
-            {
-                lr.material = mat;
-            }
+            if (mat != null) lr.material = mat;
         }
 
         return reticle;

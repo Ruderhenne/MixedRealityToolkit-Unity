@@ -45,6 +45,7 @@ MonoBehaviour:
   - RPC_UpdateRightSlider
   - RPC_UpdateSlider
   - RPC_RequestState
+  - RPC_SetDashboardTransform
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

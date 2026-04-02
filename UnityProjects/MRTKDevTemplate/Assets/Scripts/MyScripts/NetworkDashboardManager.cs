@@ -224,6 +224,35 @@ public class NetworkDashboardManager : MonoBehaviourPun
         suppressSliderCallback = false;
     }
 
+    /// <summary>
+    /// Wird vom Master via QRTracker gesendet, wenn das Dashboard
+    /// auf den QR-Code zentriert wurde. Setzt Position und Rotation
+    /// auf allen Clients direkt, ohne dass der PhotonTransformView
+    /// stört.
+    /// </summary>
+    [PunRPC]
+    void RPC_SetDashboardTransform(float px, float py, float pz,
+                                   float rx, float ry, float rz, float rw)
+    {
+        var pos = new Vector3(px, py, pz);
+        var rot = new Quaternion(rx, ry, rz, rw);
+
+        // PhotonTransformView kurz deaktivieren
+        var transformView = GetComponent<PhotonTransformView>();
+        var transformViewClassic = GetComponent<PhotonTransformViewClassic>();
+
+        if (transformView != null)        transformView.enabled = false;
+        if (transformViewClassic != null) transformViewClassic.enabled = false;
+
+        transform.SetPositionAndRotation(pos, rot);
+
+        Debug.Log($"[NetworkDashboardManager] RPC_SetDashboardTransform: pos={pos} rot={rot.eulerAngles}");
+
+        // Wieder aktivieren – neue Position ist jetzt die Sync-Basis
+        if (transformView != null)        transformView.enabled = true;
+        if (transformViewClassic != null) transformViewClassic.enabled = true;
+    }
+
     //  UI UPDATES
     void UpdateCounterDisplay() => counterText.text = counterValue.ToString();
 
