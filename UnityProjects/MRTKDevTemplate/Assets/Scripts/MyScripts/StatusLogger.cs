@@ -1,14 +1,8 @@
-using UnityEngine;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
-/// <summary>
-/// Central status logger for the dashboard InfoSection.
-/// Messages are displayed line-by-line (newest on top) and each line
-/// is removed individually after a configurable delay.
-/// Limited to a maximum number of visible lines.
-/// </summary>
 public class StatusLogger : MonoBehaviour
 {
     public static StatusLogger Instance { get; private set; }
@@ -17,9 +11,15 @@ public class StatusLogger : MonoBehaviour
     [SerializeField] private float clearDelay = 5f;
     [SerializeField] private int maxLines = 3;
 
-    // Each line entry with its own removal coroutine
-    private readonly List<string> lines = new List<string>();
-    private readonly List<Coroutine> lineCoroutines = new List<Coroutine>();
+    private struct LineEntry
+    {
+        public int id;
+        public string text;
+        public Coroutine coroutine;
+    }
+
+    private int nextId = 0;
+    private readonly List<LineEntry> entries = new List<LineEntry>();
 
     void Awake()
     {
@@ -44,11 +44,6 @@ public class StatusLogger : MonoBehaviour
 
     public TMP_Text GetStatusText() => statusText;
 
-    /// <summary>
-    /// Adds a message as the topmost line in the InfoSection.
-    /// The line is automatically removed after <see cref="clearDelay"/> seconds.
-    /// If the maximum number of lines is reached, the oldest line is removed immediately.
-    /// </summary>
     public static void Log(string message)
     {
         Debug.Log($"[StatusLogger] {message}");
@@ -57,50 +52,57 @@ public class StatusLogger : MonoBehaviour
         {
             try
             {
-                // Remove oldest line if limit is reached
-                while (Instance.lines.Count >= Instance.maxLines)
-                {
-                    int last = Instance.lines.Count - 1;
-                    Instance.StopCoroutine(Instance.lineCoroutines[last]);
-                    Instance.lines.RemoveAt(last);
-                    Instance.lineCoroutines.RemoveAt(last);
-                }
-
-                // Insert new line at the top
-                Instance.lines.Insert(0, message);
-
-                // Start a coroutine that removes this specific line after the delay
-                var co = Instance.StartCoroutine(Instance.RemoveLineAfterDelay(message));
-                Instance.lineCoroutines.Insert(0, co);
-
-                Instance.RefreshDisplay();
+                Instance.AddLine(message);
             }
             catch (System.Exception) { }
         }
+    }
+
+    private void AddLine(string message)
+    {
+        // Älteste Zeile entfernen, wenn Limit erreicht
+        while (entries.Count >= maxLines)
+        {
+            var oldest = entries[entries.Count - 1];
+            StopCoroutine(oldest.coroutine);
+            entries.RemoveAt(entries.Count - 1);
+        }
+
+        int id = nextId++;
+        var co = StartCoroutine(RemoveLineAfterDelay(id));
+        entries.Insert(0, new LineEntry { id = id, text = message, coroutine = co });
+
+        RefreshDisplay();
     }
 
     private void RefreshDisplay()
     {
-        if (statusText != null)
+        if (statusText == null) return;
+        try
         {
-            try
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < entries.Count; i++)
             {
-                statusText.text = string.Join("\n", lines.ToArray());
+                if (i > 0) sb.Append('\n');
+                sb.Append(entries[i].text);
             }
-            catch (System.Exception) { }
+            statusText.text = sb.ToString();
         }
+        catch (System.Exception) { }
     }
 
-    private IEnumerator RemoveLineAfterDelay(string message)
+    private IEnumerator RemoveLineAfterDelay(int id)
     {
         yield return new WaitForSeconds(clearDelay);
 
-        int index = lines.LastIndexOf(message);
-        if (index >= 0)
+        for (int i = entries.Count - 1; i >= 0; i--)
         {
-            lines.RemoveAt(index);
-            lineCoroutines.RemoveAt(index);
-            RefreshDisplay();
+            if (entries[i].id == id)
+            {
+                entries.RemoveAt(i);
+                break;
+            }
         }
+        RefreshDisplay();
     }
 }

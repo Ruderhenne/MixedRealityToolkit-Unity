@@ -50,7 +50,6 @@ public class QRTracker : MonoBehaviour
     private TrackableId stabilizingMarkerId;
 
     private static QRTracker sceneInstance;
-    private Coroutine clearTextCoroutine;
 
     void Awake()
     {
@@ -360,27 +359,8 @@ public class QRTracker : MonoBehaviour
         else
             Debug.Log($"[QRTracker] {message}");
 
-        if (statusText != null)
-        {
-            try
-            {
-                statusText.text = message;
-                if (clearTextCoroutine != null) StopCoroutine(clearTextCoroutine);
-                clearTextCoroutine = StartCoroutine(ClearStatusText(5f));
-            }
-            catch (Exception) { }
-        }
-    }
-
-    private IEnumerator ClearStatusText(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (statusText != null)
-        {
-            try { statusText.text = ""; }
-            catch (Exception) { }
-        }
-        clearTextCoroutine = null;
+        // Zentralen StatusLogger verwenden (zeigt die Nachricht mit Auto-Clear)
+        StatusLogger.Log(message);
     }
 
     private GameObject CreateDefaultReticle()

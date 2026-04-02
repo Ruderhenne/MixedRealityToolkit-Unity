@@ -5,11 +5,21 @@ using UnityEngine;
 
 public class PlayerRaySender : MonoBehaviourPun
 {
-    public Transform leftHandPalm;   // Drag LeftHand → Palm
-    public Transform rightHandPalm;  // Drag RightHand → Palm
+    public Transform leftHandPalm;
+    public Transform rightHandPalm;
+
+    [Tooltip("Minimale Positionsänderung in Metern, um ein Update zu senden")]
+    public float positionThreshold = 0.005f;
+    [Tooltip("Minimale Richtungsänderung in Grad, um ein Update zu senden")]
+    public float directionThresholdDeg = 1f;
 
     private bool leftHandActive = false;
     private bool rightHandActive = false;
+
+    // Letzte gesendete Werte für Dirty-Check
+    private Vector3 lastLeftPos, lastLeftDir;
+    private Vector3 lastRightPos, lastRightDir;
+    private Vector3 lastLegacyPos, lastLegacyDir;
 
     private IEnumerator Start()
     {
@@ -28,71 +38,61 @@ public class PlayerRaySender : MonoBehaviourPun
         leftHandActive = leftHandPalm && leftHandPalm.gameObject.activeInHierarchy;
         rightHandActive = rightHandPalm && rightHandPalm.gameObject.activeInHierarchy;
 
-        // Je Hand eigene Keys senden/entfernen, damit später beide Pointer möglich sind
+        // Sammle alle geänderten Properties in einem einzigen Hashtable
+        var props = new ExitGames.Client.Photon.Hashtable();
+
         if (leftHandActive)
-            SendHandRay(leftHandPalm, "leftHandPos", "leftHandDir");
+            TryAddHandRay(leftHandPalm, "leftHandPos", "leftHandDir", ref lastLeftPos, ref lastLeftDir, props);
         else
-            ClearHandRay("leftHandPos", "leftHandDir");
+            AddClearKeys("leftHandPos", "leftHandDir", ref lastLeftPos, ref lastLeftDir, props);
 
         if (rightHandActive)
-            SendHandRay(rightHandPalm, "rightHandPos", "rightHandDir");
+            TryAddHandRay(rightHandPalm, "rightHandPos", "rightHandDir", ref lastRightPos, ref lastRightDir, props);
         else
-            ClearHandRay("rightHandPos", "rightHandDir");
+            AddClearKeys("rightHandPos", "rightHandDir", ref lastRightPos, ref lastRightDir, props);
 
-        // Zusätzlich: Kompatibilität mit altem Code / bestehendem Pointer-Renderer:
-        // Setze immer die globalen Keys "headPos"/"rayDir" auf die bevorzugte Hand (rechts vor links).
-        if (rightHandActive)
-        {
-            SendHandRay(rightHandPalm, "headPos", "rayDir");
-        }
-        else if (leftHandActive)
-        {
-            SendHandRay(leftHandPalm, "headPos", "rayDir");
-        }
+        // Legacy-Keys: bevorzugt rechts, dann links
+        Transform legacyHand = rightHandActive ? rightHandPalm : (leftHandActive ? leftHandPalm : null);
+        if (legacyHand != null)
+            TryAddHandRay(legacyHand, "headPos", "rayDir", ref lastLegacyPos, ref lastLegacyDir, props);
         else
-        {
-            ClearHandRay("headPos", "rayDir");
-        }
+            AddClearKeys("headPos", "rayDir", ref lastLegacyPos, ref lastLegacyDir, props);
+
+        // Nur EIN Netzwerk-Call pro Frame, und nur wenn sich etwas geändert hat
+        if (props.Count > 0)
+            PhotonNetwork.LocalPlayer.SetCustomProperties(props);
     }
 
-    // Sendet Position und Richtung einer Hand als Player-CustomProperties
-    // Als float[] (robuster) + Debug-Log
-    private void SendHandRay(Transform handPalm, string posKey, string dirKey)
+    private void TryAddHandRay(Transform handPalm, string posKey, string dirKey,
+        ref Vector3 lastPos, ref Vector3 lastDir, ExitGames.Client.Photon.Hashtable props)
     {
-        if (handPalm == null) return;
-
         Vector3 position = handPalm.position;
         Vector3 direction = handPalm.forward;
 
-        float[] posArr = new float[] { position.x, position.y, position.z };
-        float[] dirArr = new float[] { direction.x, direction.y, direction.z };
+        bool posChanged = Vector3.Distance(position, lastPos) > positionThreshold;
+        bool dirChanged = Vector3.Angle(direction, lastDir) > directionThresholdDeg;
 
-        var props = new ExitGames.Client.Photon.Hashtable
-        {
-            { posKey, posArr },
-            { dirKey, dirArr }
-        };
+        if (!posChanged && !dirChanged) return;
 
-        PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+        lastPos = position;
+        lastDir = direction;
 
-        Debug.Log($"[PlayerRaySender] Actor {PhotonNetwork.LocalPlayer.ActorNumber} set {posKey}={posArr[0]:F3},{posArr[1]:F3},{posArr[2]:F3} {dirKey}={dirArr[0]:F3},{dirArr[1]:F3},{dirArr[2]:F3}");
+        float[] posArr = { position.x, position.y, position.z };
+        float[] dirArr = { direction.x, direction.y, direction.z };
+
+        props[posKey] = posArr;
+        props[dirKey] = dirArr;
     }
 
-    // Entfernt die angegebenen Keys aus den CustomProperties (Setzen auf null entfernt den Key)
-    private void ClearHandRay(string posKey, string dirKey)
+    private void AddClearKeys(string posKey, string dirKey,
+        ref Vector3 lastPos, ref Vector3 lastDir, ExitGames.Client.Photon.Hashtable props)
     {
-        var props = new ExitGames.Client.Photon.Hashtable
-        {
-            { posKey, null },
-            { dirKey, null }
-        };
+        // Nur clearen, wenn vorher tatsächlich Werte gesendet wurden
+        if (lastPos == Vector3.zero && lastDir == Vector3.zero) return;
 
-        PhotonNetwork.LocalPlayer.SetCustomProperties(props);
-
-        // Loggen, damit wir sehen, wenn ein Client die Keys entfernt (z.B. weil Hände inactive)
-        if (PhotonNetwork.LocalPlayer != null)
-        {
-            Debug.Log($"[PlayerRaySender] Actor {PhotonNetwork.LocalPlayer.ActorNumber} cleared {posKey} & {dirKey}");
-        }
+        lastPos = Vector3.zero;
+        lastDir = Vector3.zero;
+        props[posKey] = null;
+        props[dirKey] = null;
     }
 }

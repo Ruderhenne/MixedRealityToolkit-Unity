@@ -35,6 +35,9 @@ public class SharedPointerManager : MonoBehaviourPun
     private Dictionary<int, float[]> lastSeenTime = new Dictionary<int, float[]>();
     private Dictionary<int, float> lastLogTime = new Dictionary<int, float>();
 
+    private readonly HashSet<int> currentActors = new HashSet<int>();
+    private readonly List<int> keysToRemove = new List<int>();
+
     void Update()
     {
         if (!PhotonNetwork.InRoom || Time.time < 2f) return;
@@ -43,46 +46,36 @@ public class SharedPointerManager : MonoBehaviourPun
 
     void UpdatePointers()
     {
-        if (!PhotonNetwork.InRoom) return;
+        // InRoom-Check hier entfernen – bereits in Update() geprüft
 
-        // Aktuelle Spielerliste holen
         var players = PhotonNetwork.PlayerList;
-        var currentActors = new HashSet<int>();
+
+        currentActors.Clear();
         foreach (var p in players)
             currentActors.Add(p.ActorNumber);
 
-        // Pointer für neue Spieler erstellen
         foreach (var p in players)
         {
             if (!playerPointers.ContainsKey(p.ActorNumber))
-            {
                 CreatePointersForPlayer(p.ActorNumber);
-            }
         }
 
-        // Pointer für nicht mehr vorhandene Spieler entfernen
-        var keysToRemove = new List<int>();
+        keysToRemove.Clear();
         foreach (var kv in playerPointers)
         {
             if (!currentActors.Contains(kv.Key))
                 keysToRemove.Add(kv.Key);
         }
         foreach (int actor in keysToRemove)
-        {
             DestroyPointersForPlayer(actor);
-        }
 
-        // Pointer für jeden Spieler aktualisieren
         foreach (var p in players)
         {
-            // LOKALEN SPIELER IMMER SEPARAT BEHANDELN
             if (p == PhotonNetwork.LocalPlayer)
             {
                 HandleLocalPlayer(p);
                 continue;
             }
-
-            // NUR REMOTE-SPIELER VERARBEITEN
             UpdateRemotePlayerPointer(p);
         }
     }

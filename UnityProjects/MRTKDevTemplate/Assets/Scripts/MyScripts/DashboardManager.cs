@@ -52,6 +52,16 @@ public class DashboardManager : MonoBehaviour
     {
     }
 
+    private void OnEnable()
+    {
+        // Komponente ist aktiv – Events könnten hier registriert werden
+    }
+
+    private void OnDisable()
+    {
+        // Komponente ist deaktiviert – Events könnten hier abgemeldet werden
+    }
+
     #region Event wiring
 
 

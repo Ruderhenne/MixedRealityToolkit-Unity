@@ -1,9 +1,8 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections;
 
 public class StatusUI : MonoBehaviour
 {
-    [SerializeField] private QRTracker qrTracker;
     [SerializeField] private string statusChildName = "statusText";
 
     private TMPro.TMP_Text text;
@@ -33,25 +32,7 @@ public class StatusUI : MonoBehaviour
             yield break;
         }
 
-        if (qrTracker == null)
-            qrTracker = FindObjectOfType<QRTracker>();
-
-        if (qrTracker != null)
-        {
-            if (text is TMPro.TextMeshPro tmp)
-            {
-                qrTracker.statusText = tmp;
-            }
-            else
-            {
-                Debug.LogWarning("StatusUI: Found TMP_Text is not TextMeshPro. Status updates will not be forwarded.");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("StatusUI: No QRTracker found in scene. Status updates will not be forwarded.");
-        }
-
+        // Nur noch den zentralen StatusLogger verdrahten
         if (StatusLogger.Instance != null)
         {
             StatusLogger.Instance.SetStatusText(text);
