@@ -163,7 +163,7 @@ MonoBehaviour:
   reticleSize: 0.15
   reticleMaterial: {fileID: 2100000, guid: dcace067b9b037c45a47e306acff253d, type: 2}
   dashboardDistance: 0.2
-  requiredSamples: 15
+  requiredSamples: 5
   minStabilizationTime: 2
 --- !u!114 &82535178
 MonoBehaviour:
@@ -781,6 +781,7 @@ MonoBehaviour:
   disappearDelay: 0.25
   pointerLength: 4
   showLocalPointer: 0
+  showRemotePointers: 0
   enableDebugLogs: 1
   debugLogInterval: 0.25
 --- !u!4 &1399420000 stripped

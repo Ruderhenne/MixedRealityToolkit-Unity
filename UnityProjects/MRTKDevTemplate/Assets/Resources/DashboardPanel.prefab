@@ -447,7 +447,7 @@ MonoBehaviour:
   reticleSize: 0.15
   reticleMaterial: {fileID: 0}
   dashboardDistance: 0.2
-  requiredSamples: 15
+  requiredSamples: 5
   minStabilizationTime: 2
 --- !u!1 &2739888482281611182
 GameObject:
