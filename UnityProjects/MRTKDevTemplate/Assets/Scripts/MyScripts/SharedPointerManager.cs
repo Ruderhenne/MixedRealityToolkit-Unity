@@ -20,6 +20,8 @@ public class SharedPointerManager : MonoBehaviourPun
     [Header("Behaviour")]
     [Tooltip("Soll der lokale Client seinen eigenen Pointer sehen?")]
     public bool showLocalPointer = false;
+    [Tooltip("Sollen die Pointer anderer Spieler angezeigt werden?")]
+    public bool showRemotePointers = false;
 
     [Header("Debug")]
     public bool enableDebugLogs = true;
@@ -112,6 +114,14 @@ public class SharedPointerManager : MonoBehaviourPun
         var pair = playerPointers[player.ActorNumber];
         var times = lastSeenTime[player.ActorNumber];
 
+        // Remote-Pointer nicht anzeigen, wenn deaktiviert
+        if (!showRemotePointers)
+        {
+            SetPointerVisible(pair[LEFT], false);
+            SetPointerVisible(pair[RIGHT], false);
+            return;
+        }
+
         bool leftValid = false;
         bool rightValid = false;
         Vector3 leftPos = Vector3.zero, leftDir = Vector3.zero;
@@ -135,9 +145,7 @@ public class SharedPointerManager : MonoBehaviourPun
                 SetPointerVisible(pair[LEFT], true);
 
                 if (enableDebugLogs)
-                {
                     Debug.Log($"[SharedPointerManager] Updated LEFT pointer for REMOTE player {player.ActorNumber}: Pos={leftPos}, Dir={leftDir}");
-                }
             }
         }
 
@@ -155,9 +163,7 @@ public class SharedPointerManager : MonoBehaviourPun
                 SetPointerVisible(pair[RIGHT], true);
 
                 if (enableDebugLogs)
-                {
                     Debug.Log($"[SharedPointerManager] Updated RIGHT pointer for REMOTE player {player.ActorNumber}: Pos={rightPos}, Dir={rightDir}");
-                }
             }
         }
 
