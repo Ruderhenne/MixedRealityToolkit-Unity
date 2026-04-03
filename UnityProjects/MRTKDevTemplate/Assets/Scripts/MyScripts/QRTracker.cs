@@ -42,7 +42,7 @@ public class QRTracker : MonoBehaviour
     private bool markerManagerSubscribed;
     private bool qrFound;
 
-    // Stabilisierungs-Daten
+    // Stabilization data
     private List<Vector3> positionSamples = new List<Vector3>();
     private List<Quaternion> rotationSamples = new List<Quaternion>();
     private float firstSampleTime;
@@ -59,7 +59,7 @@ public class QRTracker : MonoBehaviour
         if (markerManager != null)
         {
             sceneInstance = this;
-            Debug.Log("[QRTracker] Szenen-Instanz mit ARMarkerManager registriert.");
+            Debug.Log("[QRTracker] Scene instance with ARMarkerManager registered.");
         }
 
         if (statusText == null && dashboardRoot != null)
@@ -69,9 +69,9 @@ public class QRTracker : MonoBehaviour
             if (statusText == null) statusText = dashboardRoot.GetComponentInChildren<TMP_Text>(true);
 
             if (statusText != null)
-                LogStatus("StatusText automatisch mit Dashboard verbunden.");
+                LogStatus("StatusText automatically linked to dashboard.");
             else
-                LogStatus("StatusText nicht gefunden. Bitte im Inspector zuweisen.", true);
+                LogStatus("StatusText not found. Please assign in Inspector.", true);
         }
 
         if (scanReticle == null)
@@ -92,7 +92,7 @@ public class QRTracker : MonoBehaviour
             if (subsystem != null)
                 Debug.Log($"[QRTracker] Subsystem running={subsystem.running}");
             else
-                Debug.LogWarning("[QRTracker] Subsystem ist NULL nach 2 Sekunden.");
+                Debug.LogWarning("[QRTracker] Subsystem is NULL after 2 seconds.");
 
             yield break;
         }
@@ -107,7 +107,7 @@ public class QRTracker : MonoBehaviour
 
         if (sceneInstance != null)
         {
-            Debug.Log("[QRTracker] Prefab-Instanz hat Szenen-QRTracker gefunden.");
+            Debug.Log("[QRTracker] Prefab instance found scene QRTracker.");
         }
         else
         {
@@ -117,11 +117,11 @@ public class QRTracker : MonoBehaviour
                 sceneInstance = this;
                 markerManager.markersChanged += OnMarkersChanged;
                 markerManagerSubscribed = true;
-                LogStatus("QRTracker bereit (ARMarkerManager in Szene gefunden).");
+                LogStatus("QRTracker ready (ARMarkerManager found in scene).");
             }
             else
             {
-                LogStatus("Kein ARMarkerManager in der Szene gefunden!", true);
+                LogStatus("No ARMarkerManager found in the scene!", true);
             }
         }
     }
@@ -130,7 +130,7 @@ public class QRTracker : MonoBehaviour
     {
         if (markerManager == null && sceneInstance != null && sceneInstance != this)
         {
-            Debug.Log("[QRTracker] Prefab-Instanz delegiert StartScanning an Szenen-Instanz.");
+            Debug.Log("[QRTracker] Prefab instance delegates StartScanning to scene instance.");
             sceneInstance.dashboardRoot = this.dashboardRoot;
             sceneInstance.statusText = this.statusText;
             sceneInstance.StartScanning();
@@ -139,7 +139,7 @@ public class QRTracker : MonoBehaviour
 
         if (markerManager == null)
         {
-            LogStatus("ARMarkerManager nicht gefunden! QR-Scan nicht möglich.", true);
+            LogStatus("ARMarkerManager not found! QR scan not possible.", true);
             return;
         }
 
@@ -152,18 +152,18 @@ public class QRTracker : MonoBehaviour
         if (!markerManager.enabled)
         {
             markerManager.enabled = true;
-            Debug.Log("[QRTracker] ARMarkerManager reaktiviert.");
+            Debug.Log("[QRTracker] ARMarkerManager reactivated.");
         }
 
         if (!markerManagerSubscribed)
         {
             markerManager.markersChanged += OnMarkersChanged;
             markerManagerSubscribed = true;
-            Debug.Log("[QRTracker] Event-Subscription erneuert.");
+            Debug.Log("[QRTracker] Event subscription renewed.");
         }
 
         if (scanReticle != null) scanReticle.SetActive(true);
-        LogStatus("Suche QR-Code... Blicke auf den QR-Code und bewege den Kopf langsam.");
+        LogStatus("Searching for QR code... Look at the QR code and move your head slowly.");
         StartCoroutine(ScanTimeout(30f));
     }
 
@@ -175,8 +175,8 @@ public class QRTracker : MonoBehaviour
         {
             var subsystem = markerManager.subsystem;
             string subsystemInfo = subsystem != null ? $"running={subsystem.running}" : "NULL";
-            LogStatus($"Noch kein QR-Code gefunden. Subsystem: {subsystemInfo}. " +
-                      "Halte den QR-Code ruhig, ca. 50cm-1m Abstand.", true);
+            LogStatus($"No QR code found yet. Subsystem: {subsystemInfo}. " +
+                      "Hold the QR code steady, approx. 50cm-1m distance.", true);
         }
     }
 
@@ -220,7 +220,7 @@ public class QRTracker : MonoBehaviour
 
                 if (!string.Equals(qrData, expectedQRData, StringComparison.OrdinalIgnoreCase))
                 {
-                    LogStatus($"QR: '{qrData}' (erwartet '{expectedQRData}').");
+                    LogStatus($"QR: '{qrData}' (expected '{expectedQRData}').");
                     continue;
                 }
 
@@ -231,14 +231,14 @@ public class QRTracker : MonoBehaviour
                     firstSampleTime = Time.time;
                     positionSamples.Clear();
                     rotationSamples.Clear();
-                    LogStatus($"QR-Code erkannt – stabilisiere... (0/{requiredSamples})");
+                    LogStatus($"QR code detected – stabilizing... (0/{requiredSamples})");
                 }
 
                 if (marker.trackableId != stabilizingMarkerId) continue;
 
-                // KAMERA-RELATIV speichern: Position und Rotation des Markers
-                // im lokalen Raum der Kamera. Dadurch ist das Ergebnis
-                // unabhängig vom Welt-Ursprung (= Startposition der HoloLens).
+                // Store CAMERA-RELATIVE: marker position and rotation in the
+                // camera's local space. This makes the result independent of
+                // the world origin (= HoloLens start position).
                 Vector3 markerPosInCamSpace = mainCam.transform.InverseTransformPoint(marker.transform.position);
                 Quaternion markerRotInCamSpace = Quaternion.Inverse(mainCam.transform.rotation) * marker.transform.rotation;
 
@@ -249,13 +249,13 @@ public class QRTracker : MonoBehaviour
                 int count = positionSamples.Count;
 
                 Debug.Log($"[QRTracker] Sample {count}/{requiredSamples}, elapsed={elapsed:F2}s, camSpacePos={markerPosInCamSpace}");
-                LogStatus($"Stabilisiere... ({count}/{requiredSamples})");
+                LogStatus($"Stabilizing... ({count}/{requiredSamples})");
 
                 if (count >= requiredSamples && elapsed >= minStabilizationTime)
                 {
                     qrFound = true;
 
-                    // Kamera-relativen Durchschnitt bilden
+                    // Compute camera-relative average
                     Vector3 avgCamPos = Vector3.zero;
                     foreach (var p in positionSamples) avgCamPos += p;
                     avgCamPos /= count;
@@ -264,8 +264,8 @@ public class QRTracker : MonoBehaviour
                     for (int i = 1; i < rotationSamples.Count; i++)
                         avgCamRot = Quaternion.Slerp(avgCamRot, rotationSamples[i], 1f / (i + 1));
 
-                    // Zurück in Weltkoordinaten – aber jetzt ZUVERLÄSSIG,
-                    // weil der Mittelwert im Kameraraum gebildet wurde.
+                    // Convert back to world coordinates – now RELIABLE,
+                    // because the average was computed in camera space.
                     Vector3 avgWorldPos = mainCam.transform.TransformPoint(avgCamPos);
                     Quaternion avgWorldRot = mainCam.transform.rotation * avgCamRot;
 
@@ -285,7 +285,7 @@ public class QRTracker : MonoBehaviour
                     }
                     else
                     {
-                        LogStatus("Kein DashboardRoot zugewiesen.", true);
+                        LogStatus("No DashboardRoot assigned.", true);
                     }
 
                     StopScanning();
@@ -294,22 +294,22 @@ public class QRTracker : MonoBehaviour
             }
             catch (Exception e)
             {
-                LogStatus("Fehler: " + e.Message, true);
+                LogStatus("Error: " + e.Message, true);
             }
         }
     }
 
     /// <summary>
-    /// Setzt Position und Rotation des Dashboards.
-    /// Deaktiviert dabei vorübergehend den PhotonTransformView,
-    /// damit der Netzwerk-Sync die neue Position nicht sofort überschreibt.
-    /// Danach wird die neue Position per RPC an alle Clients gesendet.
+    /// Sets the position and rotation of the dashboard.
+    /// Temporarily disables the PhotonTransformView so that
+    /// network sync does not immediately overwrite the new position.
+    /// Afterwards the new position is sent to all clients via RPC.
     /// </summary>
     private void ApplyDashboardTransform(Vector3 pos, Quaternion rot)
     {
-        // PhotonTransformView (und ggf. PhotonTransformViewClassic) kurz deaktivieren,
-        // damit Photon die neue Transformation nicht sofort mit dem alten
-        // Netzwerkzustand überschreibt.
+        // Temporarily disable PhotonTransformView (and PhotonTransformViewClassic)
+        // so Photon does not immediately overwrite the new transform
+        // with the old network state.
         var photonView = dashboardRoot.GetComponent<PhotonView>();
         var transformView = dashboardRoot.GetComponent<PhotonTransformView>();
         var transformViewClassic = dashboardRoot.GetComponent<PhotonTransformViewClassic>();
@@ -317,27 +317,27 @@ public class QRTracker : MonoBehaviour
         if (transformView != null)   transformView.enabled = false;
         if (transformViewClassic != null) transformViewClassic.enabled = false;
 
-        // Transformation lokal setzen
+        // Set transform locally
         dashboardRoot.transform.SetPositionAndRotation(pos, rot);
 
-        Debug.Log($"[QRTracker] Dashboard gesetzt: pos={pos} rot={rot.eulerAngles}");
+        Debug.Log($"[QRTracker] Dashboard placed: pos={pos} rot={rot.eulerAngles}");
 
-        // Neue Position an alle Clients broadcasten (nur Master darf das)
+        // Broadcast new position to all clients (only master may do this)
         if (photonView != null && PhotonNetwork.IsMasterClient)
         {
             photonView.RPC("RPC_SetDashboardTransform", RpcTarget.AllBuffered,
                 pos.x, pos.y, pos.z,
                 rot.x, rot.y, rot.z, rot.w);
 
-            Debug.Log("[QRTracker] RPC_SetDashboardTransform gesendet.");
+            Debug.Log("[QRTracker] RPC_SetDashboardTransform sent.");
         }
 
-        // PhotonTransformView wieder aktivieren – ab jetzt wird die neue
-        // Position als Basis für den Sync verwendet.
+        // Re-enable PhotonTransformView – from now on the new position
+        // is used as the base for sync.
         if (transformView != null)   transformView.enabled = true;
         if (transformViewClassic != null) transformViewClassic.enabled = true;
 
-        LogStatus("Dashboard zentriert auf CenterMarker!");
+        LogStatus("Dashboard centered on CenterMarker!");
     }
 
     void OnDestroy()
@@ -359,7 +359,7 @@ public class QRTracker : MonoBehaviour
         else
             Debug.Log($"[QRTracker] {message}");
 
-        // Zentralen StatusLogger verwenden (zeigt die Nachricht mit Auto-Clear)
+        // Use central StatusLogger (displays message with auto-clear)
         StatusLogger.Log(message);
     }
 
@@ -379,7 +379,7 @@ public class QRTracker : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("[QRTracker] Kein Reticle-Material! Bitte im Inspector zuweisen.");
+                Debug.LogWarning("[QRTracker] No reticle material! Please assign in Inspector.");
             }
         }
 
