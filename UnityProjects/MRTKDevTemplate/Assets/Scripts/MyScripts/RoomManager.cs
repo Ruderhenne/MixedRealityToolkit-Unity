@@ -32,7 +32,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Debug.Log("Master Client creating dashboard...");
 
             Transform cam = Camera.main.transform;
-            Vector3 pos = cam.position + cam.forward * 1.1f;
+            Vector3 pos = cam.position + cam.forward * 1.1f + Vector3.down * 0.2f;
             Quaternion rot = Quaternion.LookRotation(cam.forward);
 
             GameObject dash = PhotonNetwork.InstantiateRoomObject("DashboardWindow", pos, rot);

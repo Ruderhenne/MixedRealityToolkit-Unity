@@ -162,7 +162,7 @@ MonoBehaviour:
   reticleDistance: 1
   reticleSize: 0.15
   reticleMaterial: {fileID: 2100000, guid: dcace067b9b037c45a47e306acff253d, type: 2}
-  dashboardDistance: 0.2
+  dashboardDistance: 0.4
   requiredSamples: 5
   minStabilizationTime: 2
 --- !u!114 &82535178
@@ -762,6 +762,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   leftHandPalm: {fileID: 1399420000}
   rightHandPalm: {fileID: 2111791271}
+  positionThreshold: 0.005
+  directionThresholdDeg: 1
 --- !u!114 &1372424783
 MonoBehaviour:
   m_ObjectHideFlags: 0

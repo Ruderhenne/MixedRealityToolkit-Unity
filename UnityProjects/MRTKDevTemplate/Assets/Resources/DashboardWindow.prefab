@@ -1065,6 +1065,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0.271
       objectReference: {fileID: 0}
+    - target: {fileID: 4742257458833898913, guid: 53524bfb42fe2dd429127630606154fc, type: 3}
+      propertyPath: dashboardRoot
+      value: 
+      objectReference: {fileID: 257622770739559439}
     - target: {fileID: 5068346677326615103, guid: 53524bfb42fe2dd429127630606154fc, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0.271

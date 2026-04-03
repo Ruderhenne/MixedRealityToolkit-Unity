@@ -10,7 +10,7 @@ using Photon.Pun;
 public class QRTracker : MonoBehaviour
 {
     [Header("Zuweisen im Inspector")]
-    [SerializeField] private GameObject dashboardRoot;
+    [SerializeField] public GameObject dashboardRoot;
     [SerializeField] private GameObject markerAnchor;
     [SerializeField] private string expectedQRData = "CenterMarker-MoshadXR";
 

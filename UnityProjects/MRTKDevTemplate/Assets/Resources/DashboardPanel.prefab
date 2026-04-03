@@ -1567,6 +1567,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92e832585e6790d4b9fd1636372a20c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dashboardRoot: {fileID: 0}
+  statusText: {fileID: 0}
 --- !u!4 &8216469653485817889 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7268022964442858138, guid: 10ef59517c853ba4a80cf2331a560f63, type: 3}
